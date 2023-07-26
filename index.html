@@ -1,12 +1,43 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="utf-8">
-    <title></title>
-  </head>
-  <body>
-    <header></header>
-    <main></main>
-    <footer></footer>
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raagas Webpage</title>
+    <style>
+        /* Add your custom CSS styling here */
+    </style>
+</head>
+<body>
+    <h1>Raagas Webpage</h1>
+
+    <section id="yaman">
+        <h2>Raag Yaman</h2>
+        <ul>
+            <li><a href="#" onclick="playSong('Song Title 1', 'YouTube Link 1')">Song Title 1</a></li>
+            <li><a href="#" onclick="playSong('Song Title 2', 'YouTube Link 2')">Song Title 2</a></li>
+            <!-- Add more songs and links as needed -->
+        </ul>
+    </section>
+
+    <section id="bhairavi">
+        <h2>Raag Bhairavi</h2>
+        <ul>
+            <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+            <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
+            <!-- Add more songs and links as needed -->
+        </ul>
+    </section>
+
+    <!-- Add more sections for other raagas -->
+
+    <div id="player"></div>
+
+    <script>
+        function playSong(title, youtubeLink) {
+            var playerDiv = document.getElementById('player');
+            playerDiv.innerHTML = `<iframe width="560" height="315" src="${youtubeLink}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+        }
+    </script>
+</body>
 </html>
