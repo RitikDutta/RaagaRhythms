@@ -66,7 +66,7 @@
     <section id="yaman">
         <h2>Raag Yaman</h2>
         <ul>
-            <li><a href="#" onclick="playSong('Song Title 1', 'YouTube Link 1')">Song Title 1</a></li>
+            <li><a href="#" onclick="playSong('Song Title 1', 'https://www.youtube.com/embed/K3R_BQSYMMA')">Song Title 1</a></li>
             <li><a href="#" onclick="playSong('Song Title 2', 'YouTube Link 2')">Song Title 2</a></li>
             <!-- Add more songs and links as needed -->
         </ul>
@@ -88,7 +88,11 @@
     <script>
         function playSong(title, youtubeLink) {
             var playerDiv = document.getElementById('player');
-            playerDiv.innerHTML = `<iframe width="100%" height="315" src="${youtubeLink}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            playerDiv.innerHTML = `<iframe width="100%" height="315" src="${youtubeLink}" frameborder="0" allow="autoplay;" allowfullscreen></iframe>`;
+
+            // playerDiv.innerHTML = `<iframe width="853" height="480" src="${youtubeLink}" title="Tu Jahan Jahan Chalega Mera Saya Saath Hoga | The Rahul Deshpande Collective" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+
+
         }
     </script>
 </body>
