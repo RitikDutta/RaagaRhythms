@@ -1,4 +1,4 @@
-Project Title: Raagas Webpage - Explore Indian Classical Songs
+Project Title: RaagaRhythms - Explore Indian Classical Songs
 
 Description:
 Raagas Webpage is a web application that allows users to explore and enjoy a curated collection of Indian classical songs. The project showcases different "ragas," the melodic frameworks used in Indian classical music, and provides users with YouTube links to popular songs in each raga.
