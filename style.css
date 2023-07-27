@@ -1,3 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+
+
+.header{
+    font-family: 'Great Vibes', cursive;
+}
+
 main {
     margin-left: 1em;
     margin-right: 1em;
