@@ -46,16 +46,15 @@ section {
 }
 
 .song-details {
-    margin-top: 5px;
-    color: #555; /* Dark gray */
     font-family: "Roboto", sans-serif;
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
 }
 
 .detail-label {
     font-weight: bold;
-    margin-right: 5px;
 }
-
 
 li {
     margin-bottom: 25px;
