@@ -23,6 +23,10 @@ function toggleWidth() {
 
 
 vidElement.style.width="100%"
+vidElement.style.position = 'absolute'
+vidElement.style.top = '0'
+vidElement.style.left = '0'
+
 
 function onYouTubeIframeAPIReady() {
     'use strict';
