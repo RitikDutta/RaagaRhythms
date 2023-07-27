@@ -1,8 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Vithkuqi&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
 
 
 .header{
     font-family: 'Great Vibes', cursive;
+}
+
+h2 {
+    color: #555;
+    margin-bottom: 10px;
+    font-family: 'Noto Serif Vithkuqi', serif;    
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    font-family: 'Roboto', sans-serif;
 }
 
 main {
