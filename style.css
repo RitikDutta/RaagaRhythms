@@ -45,6 +45,24 @@ section {
     margin-bottom: 20px;
 }
 
+.song-details {
+    display: none; /* Hide the song details by default */
+    padding: 10px;
+    background-color: #f9f9f9; /* Light gray background for details */
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
+    font-family: "Roboto", sans-serif;
+    font-size: 14px;
+}
+
+li:hover .song-details {
+    display: block; /* Show the song details on hover */
+}
+
+
+
+
 li {
     margin-bottom: 8px;
 }
