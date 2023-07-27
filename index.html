@@ -1,157 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./style.css">
-    <title>Raagas Webpage</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-        }
-
-        h1 {
-            text-align: center;
-            padding: 20px 0;
-            color: #333;
-        }
-
-        section {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-
-
-
-
-        li {
-            margin-bottom: 8px;
-        }
-
-        a {
-            color: #007bff;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        a:hover {
-            color: #0056b3;
-        }
-
-        #content {
-            margin-top: 25%; 
-        }
-
-
-
-        /* Responsive Styles */
-        @media screen and (max-width: 600px) {
-            section {
-                padding: 10px;
-            }
-        }
-    </style>
-</head>
-<body>
-
-
-<div id="video-container" style="margin-bottom: 250px;">
-    <div id="YouTube-player" ></div>
-</div>
-
-
-
-<div id="content" >
-    <h1 class="header">RaagaRhythms</h1>
-
-    <span class="margin-left-m margin-right-m" style="display: none;">
-          <label for="YouTube-video-id">videoId</label>:
-          <input id="YouTube-video-id" type="text" value="yG0oBPtyNb0" size="12" pattern="[_\-0-9A-Za-z]{11}" onchange="youTubePlayerChangeVideoId();">
-    </span>
-
-    
-
-
-    <section id="yaman">
-        <h2>Raag Yaman</h2>
-        <ul>
-            <li><a href="#" onclick="document.getElementById('YouTube-video-id').value='K3R_BQSYMMA'; youTubePlayerChangeVideoId();">Song Title 1</a></li>
-            <li><a href="#" onclick="document.getElementById('YouTube-video-id').value='F2Ug3VkFuDw'; youTubePlayerChangeVideoId();">Song Title 1</a></li>
-            
-        </ul>
-    </section>
-
-    <section id="bhairavi"> <h2>Raag Bhairavi</h2> <ul> <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link
-    3')">Song Title 3</a></li> <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title
-    4</a></li>
-            <!-- Add more songs and links as needed -->
-        </ul>
-    </section>
-    <section id="bhairavi">
-        <h2>Raag Bhairavi</h2>
-        <ul>
-            <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-            <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-            <!-- Add more songs and links as needed -->
-        </ul>
-    </section>
-    <section id="bhairavi">
-        <h2>Raag Bhairavi</h2>
-        <ul>
-            <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-            <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-            <!-- Add more songs and links as needed -->
-        </ul>
-    </section>
-    <section id="bhairavi">
-        <h2>Raag Bhairavi</h2>
-        <ul>
-            <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-            <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-            <!-- Add more songs and links as needed -->
-        </ul>
-    </section>
-    <section id="bhairavi">
-        <h2>Raag Bhairavi</h2>
-        <ul>
-            <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-            <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-            <!-- Add more songs and links as needed -->
-        </ul>
-    </section>
-    <section id="bhairavi">
-        <h2>Raag Bhairavi</h2>
-        <ul>
-            <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-            <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-            <!-- Add more songs and links as needed -->
-        </ul>
-    </section>
-</div>
-
-
-
-
-    <span class="nowrap">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" href="./style.css">
+      <title>Raagas Webpage</title>
+   </head>
+   <body>
+      <div id="video-container" style="margin-bottom: 250px;">
+         <div id="YouTube-player" ></div>
+      </div>
+      <div id="content" >
+         <h1 class="header">RaagaRhythms</h1>
+         <span class="margin-left-m margin-right-m" style="display: none;">
+         <label for="YouTube-video-id">videoId</label>:
+         <input id="YouTube-video-id" type="text" value="yG0oBPtyNb0" size="12" pattern="[_\-0-9A-Za-z]{11}" onchange="youTubePlayerChangeVideoId();">
+         </span>
+         <section id="yaman">
+            <h2>Raag Yaman</h2>
+            <ul>
+               <li><a href="#" onclick="document.getElementById('YouTube-video-id').value='K3R_BQSYMMA'; youTubePlayerChangeVideoId();">Song Title 1</a></li>
+               <li><a href="#" onclick="document.getElementById('YouTube-video-id').value='F2Ug3VkFuDw'; youTubePlayerChangeVideoId();">Song Title 1</a></li>
+            </ul>
+         </section>
+         <section id="bhairavi">
+            <h2>Raag Bhairavi</h2>
+            <ul>
+               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a>
+               </li>
+               <!-- Add more songs and links as needed -->
+            </ul>
+         </section>
+         <section id="bhairavi">
+            <h2>Raag Bhairavi</h2>
+            <ul>
+               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
+               <!-- Add more songs and links as needed -->
+            </ul>
+         </section>
+         <section id="bhairavi">
+            <h2>Raag Bhairavi</h2>
+            <ul>
+               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
+               <!-- Add more songs and links as needed -->
+            </ul>
+         </section>
+         <section id="bhairavi">
+            <h2>Raag Bhairavi</h2>
+            <ul>
+               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
+               <!-- Add more songs and links as needed -->
+            </ul>
+         </section>
+         <section id="bhairavi">
+            <h2>Raag Bhairavi</h2>
+            <ul>
+               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
+               <!-- Add more songs and links as needed -->
+            </ul>
+         </section>
+         <section id="bhairavi">
+            <h2>Raag Bhairavi</h2>
+            <ul>
+               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
+               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
+               <!-- Add more songs and links as needed -->
+            </ul>
+         </section>
+      </div>
+      <span class="nowrap">
       <button onclick="youTubePlayerPlay();">Play</button>
       <button onclick="youTubePlayerPause();">Pause</button>
       <button onclick="youTubePlayerStop();">Stop</button>
-        <label class="toggle-slider" for="toggleSlider">
-        <input type="checkbox" id="toggleSlider" onchange="toggleWidth()" />
-        <span class="slider"></span>
+      <label class="toggle-slider" for="toggleSlider">
+      <input type="checkbox" id="toggleSlider" onchange="toggleWidth()" />
+      <span class="slider"></span>
       </label>
-    </span>
-
-    <script  src="./script.js"></script>
-
-</body>
+      </span>
+      <script  src="./script.js"></script>
+   </body>
 </html>
