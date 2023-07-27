@@ -34,7 +34,7 @@ function onYouTubeIframeAPIReady() {
     var inputVideoId = document.getElementById('YouTube-video-id');
     var videoId = inputVideoId.value;
     var suggestedQuality = 'tiny';
-    var height = 300;
+    var height = 250;
     var width = 400;
     var youTubePlayerVolumeItemId = 'YouTube-player-volume';
 
