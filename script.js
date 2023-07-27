@@ -1,28 +1,29 @@
-/**
- * JavaScript code for the "YouTube API example"
- * http://www.opimedia.be/DS/webdev/YouTube/
- *
- * (c) Olivier Pirson --- 2016 January, 26
- */
-
-/**
- * YT.Player initialized by onYouTubeIframeAPIReady().
- */
 var youTubePlayer;
+var vidElement = document.getElementById('YouTube-player');
+
+
+function toggleWidth() {
+    var checkbox = document.getElementById('toggleSlider');
+    var vidElement = document.getElementById('YouTube-player');
+
+    // If the checkbox is checked, set the width to 400px, otherwise set it back to 200px
+    if (checkbox.checked) {
+        // If the checkbox is checked, set the position to 'fixed'
+        vidElement.style.position = 'fixed';
+        vidElement.style.top = '0'
+        vidElement.style.left = '0'
+    } else {
+        // If the checkbox is unchecked, set the position to 'absolute'
+        vidElement.style.position = 'absolute';
+    }
+}
 
 
 
-/**
- * Function called by https://www.youtube.com/iframe_api
- * when it is loaded.
- *
- * Initialized YouTube iframe with the value of #YouTube-video-id as videoId
- * and the value of #YouTube-player-volume as volume.
- *
- * Adapted from:
- * https://developers.google.com/youtube/iframe_api_reference
- * https://developers.google.com/youtube/player_parameters?playerVersion=HTML5
- */
+
+
+vidElement.style.width="100%"
+
 function onYouTubeIframeAPIReady() {
     'use strict';
 
@@ -112,10 +113,8 @@ function youTubePlayerChangeVideoId() {
                                });
     youTubePlayer.pauseVideo();
     youTubePlayerDisplayFixedInfos();
-    setTimeout(function() {
-                youTubePlayerPlay();
-            }, 2000);
 
+    youTubePlayer.playVideo();
 }
 
 
@@ -157,72 +156,6 @@ function youTubePlayerDisplayFixedInfos() {
         );
     }
 }
-
-
-/**
- * Display
- *   some video informations to #YouTube-player-infos,
- *   errors to #YouTube-player-errors
- *   and set progress bar #YouTube-player-progress.
- */
-function youTubePlayerDisplayInfos() {
-    'use strict';
-
-    if ((this.nbCalls === undefined) || (this.nbCalls >= 3)) {
-        this.nbCalls = 0;
-    }
-    else {
-        ++this.nbCalls;
-    }
-
-    var indicatorDisplay = '<span id="indicator-display" title="timing of informations refreshing">' + ['|', '/', String.fromCharCode(8212), '\\'][this.nbCalls] + '</span>';
-
-    if (youTubePlayerActive()) {
-        var state = youTubePlayer.getPlayerState();
-
-        var current = youTubePlayer.getCurrentTime();
-        var duration = youTubePlayer.getDuration();
-        var currentPercent = (current && duration
-                              ? current*100/duration
-                              : 0);
-
-        var fraction = (youTubePlayer.hasOwnProperty('getVideoLoadedFraction')
-                        ? youTubePlayer.getVideoLoadedFraction()
-                        : 0);
-
-        var url = youTubePlayer.getVideoUrl();
-
-        if (!current) {
-            current = 0;
-        }
-        if (!duration) {
-            duration = 0;
-        }
-
-        var volume = youTubePlayer.getVolume();
-
-        if (!youTubePlayer.personalPlayer.currentTimeSliding) {
-            document.getElementById('YouTube-player-progress').value = currentPercent;
-        }
-
-        document.getElementById('YouTube-player-infos').innerHTML = (
-            indicatorDisplay
-                + 'URL: <a class="url" href="' + url + '">' + url + '</a><br>'
-                + 'Quality: <strong>' + youTubePlayer.getPlaybackQuality() + '</strong>'
-                + ' &mdash; Available quality: <strong>' + youTubePlayer.getAvailableQualityLevels() + '</strong><br>'
-                + 'State <strong>' + state + '</strong>: <strong>' + youTubePlayerStateValueToDescription(state) + '</strong><br>'
-                + 'Loaded: <strong>' + (fraction*100).toFixed(1) + '</strong>%<br>'
-                + 'Duration: <strong>' + current.toFixed(2) + '</strong>/<strong>' + duration.toFixed(2) + '</strong>s = <strong>' + currentPercent.toFixed(2) + '</strong>%<br>'
-                + 'Volume: <strong>' + volume + '</strong>%'
-        );
-
-        document.getElementById('YouTube-player-errors').innerHTML = '<div>Errors: <strong>' + youTubePlayer.personalPlayer.errors + '</strong></div>';
-    }
-    else {
-        document.getElementById('YouTube-player-infos').innerHTML = indicatorDisplay;
-    }
-}
-
 
 /**
  * Pause.

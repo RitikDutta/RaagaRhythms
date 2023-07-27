@@ -33,10 +33,9 @@ main > section textarea {
 
 .nowrap {
     white-space: nowrap;
-    align-content: center;
-    position: absolute;
-    left: 50%;
-    right: 50%;
+    position: fixed;
+    margin: auto;
+    bottom: 0;
 }
 
 
@@ -56,6 +55,59 @@ main > section textarea {
 }
 
 #YouTube-video-id { font-family: monospace; }
+
+
+
+/* Styles for the slider */
+.toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 14px;
+}
+
+.toggle-slider input {
+    display: none;
+}
+
+/* Slider background */
+.slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: pointer;
+    background-color: #ccc;
+    border-radius: 34px;
+    transition: background-color 0.3s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 10px;
+    width: 10px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+/* Slider on state */
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(10px);
+}
+
+
+
+
+
 
 
 @media (max-width: 600px) {
