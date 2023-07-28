@@ -1,107 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="stylesheet" href="./style.css">
-      <title>Raagas Webpage</title>
-   </head>
-   <body>
-      <div id="video-container" style="margin-bottom: 250px;">
-         <div id="YouTube-player" ></div>
-      </div>
-      <div id="content" >
-
-        <div id="songs-container">
-
-
-
-
-        <h1 class="header">Raaga<span class="header2">Rhythms</span></h1>
-        <span class="margin-left-m margin-right-m" style="display: none;">
-        <label for="YouTube-video-id">videoId</label>:
-        <input id="YouTube-video-id" type="text" value="yG0oBPtyNb0" size="12" pattern="[_\-0-9A-Za-z]{11}" onchange="youTubePlayerChangeVideoId();">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="./style.css" />
+        <title>Raagas Webpage</title>
+    </head>
+    <body>
+        <div id="video-container" style="margin-bottom: 250px;">
+            <div id="YouTube-player"></div>
+        </div>
+        <div id="content">
+            <h1 class="header">Raaga<span class="header2">Rhythms</span></h1>
+            <span class="margin-left-m margin-right-m" style="display: none;">
+                <label for="YouTube-video-id">videoId</label>:
+                <input id="YouTube-video-id" type="text" value="yG0oBPtyNb0" size="12" pattern="[_\-0-9A-Za-z]{11}" onchange="youTubePlayerChangeVideoId();" />
+            </span>
+            <div id="songs-wrapper">
+                <div id="songs-container"></div>
+            </div>
+        </div>
+        <span class="nowrap">
+            <button onclick="youTubePlayerPlay();">Play</button>
+            <button onclick="youTubePlayerPause();">Pause</button>
+            <button onclick="youTubePlayerStop();">Stop</button>
+            <label class="toggle-slider" for="toggleSlider">
+                <input type="checkbox" id="toggleSlider" onchange="toggleWidth()" />
+                <span class="slider"></span>
+            </label>
         </span>
-          <section id="yaman">
-            <h2>Raag Yaman</h2>
-              <ul>
-                  <li>
-                      <a href="#" onclick="document.getElementById('YouTube-video-id').value='9r1bvWFbmwk'; youTubePlayerChangeVideoId();">
-                          kahin ye wo to nahin | haqeeqat old OG
-                      </a>
-                      <div class="song-details">
-                          <span class="detail-label">Singer:</span> Lata Mangeshkar
-                          <br>
-                          <span class="detail-label">Composer:</span> Madan Mohan
-                          <br>
-                          <span class="detail-label">Lyricist:</span> Kaifi Azmi
-                      </div>
-                  </li>
-                  <li>
-                      <a href="#" onclick="document.getElementById('YouTube-video-id').value='ah1T5cTZmo8'; youTubePlayerChangeVideoId();">
-                          Jab Deep Jale | Chitchor old OG
-                      </a>
-                      <div class="song-details">
-                          <span class="detail-label">Singer:</span> Yesudas
-                          <br>
-                          <span class="detail-label">Composer:</span> Ravindra Jain
-                          <br>
-                          <span class="detail-label">Lyricist:</span> Ravindra Jain
-                      </div>
-                  </li>
-              </ul>
-          </section>
-
-         <section id="bhairavi">
-            <h2>Raag Bhairavi</h2>
-            <ul>
-               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-               <!-- Add more songs and links as needed -->
-            </ul>
-         </section>
-         <section id="bhairavi">
-            <h2>Raag Bhairavi</h2>
-            <ul>
-               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-               <!-- Add more songs and links as needed -->
-            </ul>
-         </section>
-         <section id="bhairavi">
-            <h2>Raag Bhairavi</h2>
-            <ul>
-               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-               <!-- Add more songs and links as needed -->
-            </ul>
-         </section>
-         <section id="bhairavi">
-            <h2>Raag Bhairavi</h2>
-            <ul>
-               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-               <!-- Add more songs and links as needed -->
-            </ul>
-         </section>
-         <section id="bhairavi">
-            <h2>Raag Bhairavi</h2>
-            <ul>
-               <li><a href="#" onclick="playSong('Song Title 3', 'YouTube Link 3')">Song Title 3</a></li>
-               <li><a href="#" onclick="playSong('Song Title 4', 'YouTube Link 4')">Song Title 4</a></li>
-               <!-- Add more songs and links as needed -->
-            </ul>
-         </section>
-      </div>
-      <span class="nowrap">
-        <button onclick="youTubePlayerPlay();">Play</button>
-        <button onclick="youTubePlayerPause();">Pause</button>
-        <button onclick="youTubePlayerStop();">Stop</button>
-        <label class="toggle-slider" for="toggleSlider">
-          <input type="checkbox" id="toggleSlider" onchange="toggleWidth()" />
-          <span class="slider"></span>
-        </label>
-      </span>
-      <script  src="./script.js"></script>
-   </body>
+        <script src="./script.js"></script>
+    </body>
 </html>
