@@ -215,3 +215,55 @@ function youTubePlayerVolumeChange(volume) {
         window.attachEvent("onload", init);
     }
 })();
+
+
+
+
+// Function to fetch songs from Google Sheets web app and display them
+function fetchSongs() {
+  fetch('https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_')
+    .then(response => response.json())
+    .then(data => {
+      // Process the received JSON data and display the songs in the container
+      const songsContainer = document.getElementById('songs-container');
+      songsContainer.innerHTML = ''; // Clear previous content
+      
+      data.forEach(song => {
+        const songElement = document.createElement('section');
+        songElement.innerHTML = `
+          <h2>${song.name}</h2>
+          <ul>
+            <li>
+              <a href="#" data-video-id="9r1bvWFbmwk">
+                d
+              </a>
+              <div class="song-details">
+                <span class="detail-label">Singer:</span> ${song.singer}
+                <br>
+                <span class="detail-label">Composer:</span> ${song.composer}
+                <br>
+                <span class="detail-label">Lyricist:</span> ${song.lyricist}
+              </div>
+            </li>
+          </ul>
+        `;
+        songsContainer.appendChild(songElement);
+      });
+      
+      // Add event listener for dynamically added links
+      songsContainer.addEventListener('click', function(event) {
+        const target = event.target;
+        if (target.tagName === 'A') {
+          const videoId = target.dataset.videoId;
+          document.getElementById('YouTube-video-id').value = videoId;
+          youTubePlayerChangeVideoId();
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching songs:', error);
+    });
+}
+
+// Call the fetchSongs function when the page loads
+document.addEventListener('DOMContentLoaded', fetchSongs);
