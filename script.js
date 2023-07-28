@@ -216,6 +216,14 @@ function youTubePlayerVolumeChange(volume) {
     }
 })();
 
+// to extracr youtube id from link
+function extractVideoIdFromLink(link) {
+  const pattern = /(?:https?:\/\/(?:www\.)?youtube\.com\/watch\?v=|https?:\/\/youtu\.be\/)([0-9A-Za-z_-]{11})/;
+  const match = pattern.exec(link);
+  return match ? match[1] : null;
+}
+
+
 // Function to fetch songs from Google Sheets web app and display them
 function fetchSongs() {
     fetch(
@@ -245,7 +253,7 @@ function fetchSongs() {
                 .map(
                     (song) => `
               <li>
-                <a href="#" data-videoid="${song.videoid}" class="song-link">
+                <a href="#" data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link">
                   ${song.name}
                 </a>
                 <div class="song-details">
