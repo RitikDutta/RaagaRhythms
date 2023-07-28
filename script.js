@@ -253,9 +253,10 @@ function fetchSongs() {
       .map(
         (song, index) => `
           <li>
-            <a href="#" data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link">
-              ${song.name}
-            </a>
+              <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
+                ${song.name}
+              </button>
+
             <div class="song-details">
               <span class="detail-label">Singer:</span> ${song.singer}
               <br>
@@ -276,14 +277,15 @@ function fetchSongs() {
 
             // Attach onclick event using event delegation
             songsContainer.addEventListener("click", function (event) {
-                const target = event.target;
-                if (target.classList.contains("song-link")) {
-                    const videoId = target.dataset.videoid;
-                    document.getElementById("YouTube-video-id").value = videoId;
-                    youTubePlayerChangeVideoId();
-                    event.preventDefault();
-                }
+              const target = event.target;
+              if (target.classList.contains("song-link-button")) {
+                const videoId = target.dataset.videoid;
+                document.getElementById("YouTube-video-id").value = videoId;
+                youTubePlayerChangeVideoId();
+                event.preventDefault(); // Prevent the default behavior of the button
+              }
             });
+
         })
         .catch((error) => {
             console.error("Error fetching songs:", error);
