@@ -247,28 +247,30 @@ function fetchSongs() {
             for (const raag in groupedSongs) {
                 const songElement = document.createElement("section");
                 songElement.innerHTML = `
-          <h2>Raag ${raag}</h2>
-          <ul>
-            ${groupedSongs[raag]
-                .map(
-                    (song) => `
-              <li>
-                <a href="#" data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link">
-                  ${song.name}
-                </a>
-                <div class="song-details">
-                  <span class="detail-label">Singer:</span> ${song.singer}
-                  <br>
-                  <span class="detail-label">Composer:</span> ${song.composer}
-                  <br>
-                  <span class="detail-label">Lyricist:</span> ${song.lyricist}
-                </div>
-              </li>
-            `
-                )
-                .join("")}
-          </ul>
-        `;
+  <h2>Raag ${raag}</h2>
+  <ul>
+    ${groupedSongs[raag]
+      .map(
+        (song, index) => `
+          <li>
+            <a href="#" data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link">
+              ${song.name}
+            </a>
+            <div class="song-details">
+              <span class="detail-label">Singer:</span> ${song.singer}
+              <br>
+              <span class="detail-label">Composer:</span> ${song.composer}
+              <br>
+              <span class="detail-label">Lyricist:</span> ${song.lyricist}
+            </div>
+          ${index !== groupedSongs[raag].length - 1 ? '<div class="separation-line"></div>' : ''}
+          </li>
+        `
+      )
+      .join("")}
+  </ul>
+`;
+
                 songsContainer.appendChild(songElement);
             }
 
