@@ -71,6 +71,70 @@ a:hover {
 }
 
 
+.music-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    white-space: nowrap;
+    position: fixed;
+    margin: auto;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.music-controls button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    margin: 0 10px;
+    cursor: pointer;
+}
+
+.music-controls label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.music-controls .slider {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+    background-color: #ccc;
+    border-radius: 13px;
+    margin-bottom: 5px;
+    transition: background-color 0.3s;
+}
+
+.music-controls .slider:before {
+    content: "";
+    position: absolute;
+    height: 22px;
+    width: 22px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.music-controls input[type="checkbox"] {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.music-controls input[type="checkbox"]:checked + .slider {
+    background-color: #2196F3;
+}
+
+.music-controls input[type="checkbox"]:checked + .slider:before {
+    transform: translateX(24px);
+}
+
 
 
 #content {
