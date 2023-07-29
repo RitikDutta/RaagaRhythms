@@ -105,7 +105,7 @@ function youTubePlayerCurrentTimeChange(currentTime) {
 
     youTubePlayer.personalPlayer.currentTimeSliding = false;
     if (youTubePlayerActive()) {
-        youTubePlayer.seekTo((currentTime * youTubePlayer.getDuration()) / 100, true);
+        youTubePlayer.seekTo(currentTime, true);
     }
 }
 
@@ -225,6 +225,16 @@ function extractVideoIdFromLink(link) {
   return match ? match[1] : null;
 }
 
+function convertNumbersToBlue(text) {
+  return text.replace(/_(\d+)_/g, '<button onclick="showNumberAlert(this)" class="time_stamp">' + '$1' + '</button>');
+}
+
+// Function to display the alert message with the number from the clicked button
+function showNumberAlert(button) {
+  const number = button.textContent;
+  youTubePlayerCurrentTimeChange(number);
+}
+
 
 // Function to fetch songs from Google Sheets web app and display them
 // ...
@@ -251,31 +261,31 @@ function fetchSongs() {
             for (const raag in groupedSongs) {
                 const songElement = document.createElement("section");
                 songElement.innerHTML = `
-  <h2>Raag ${raag}</h2>
-  <ul>
-    ${groupedSongs[raag]
-      .map(
-        (song, index) => `
-          <li>
-              <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
-                ${song.name}
-              </button>
+                  <h2>Raag ${raag}</h2>
+                  <ul>
+                    ${groupedSongs[raag]
+                      .map(
+                        (song, index) => `
+                          <li>
+                              <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
+                                ${song.name}
+                              </button>
 
-            <div class="song-details">
-              <span class="detail-label">Singer:</span> ${song.singer}
-              <br>
-              <span class="detail-label">Composer:</span> ${song.composer}
-              <br>
-              <span class="detail-label">Lyricist:</span> ${song.lyricist}
-            </div>
-            <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? 'none' : 'block'};">${song.details}</div>
-          ${index !== groupedSongs[raag].length - 1 ? '<div class="separation-line"></div>' : ''}
-          </li>
-        `
-      )
-      .join("")}
-  </ul>
-`;
+                            <div class="song-details">
+                              <span class="detail-label">Singer:</span> ${song.singer}
+                              <br>
+                              <span class="detail-label">Composer:</span> ${song.composer}
+                              <br>
+                              <span class="detail-label">Lyricist:</span> ${song.lyricist}
+                            </div>
+                            <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? 'none' : 'block'};">${song.details}</div>
+                          ${index !== groupedSongs[raag].length - 1 ? '<div class="separation-line"></div>' : ''}
+                          </li>
+                        `
+                      )
+                      .join("")}
+                  </ul>
+                `;
 
                 songsContainer.appendChild(songElement);
             }
@@ -286,20 +296,27 @@ function fetchSongs() {
                 const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
 
                 if (listItem) {
-                    const moreDetails = listItem.querySelector(".more-details");
+                  const moreDetails = listItem.querySelector(".more-details");
 
-                    if (moreDetails) {
-                        moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
-                    }
+                  if (moreDetails && !target.closest(".more-details button")) {
+                    moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
 
-                    if (target.classList.contains("song-link-button")) {
-                        const videoId = target.dataset.videoid;
-                        document.getElementById("YouTube-video-id").value = videoId;
-                        youTubePlayerChangeVideoId();
-                        event.preventDefault(); // Prevent the default behavior of the button
+                    // Check if the details are visible and convert numbers to blue if they exist
+                    if (moreDetails.style.display === "block") {
+                      moreDetails.innerHTML = convertNumbersToBlue(moreDetails.innerHTML);
                     }
+                  }
+
+                  if (target.classList.contains("song-link-button")) {
+                    const videoId = target.dataset.videoid;
+                    document.getElementById("YouTube-video-id").value = videoId;
+                    youTubePlayerChangeVideoId();
+                    event.preventDefault(); // Prevent the default behavior of the button
+                  }
                 }
-            });
+              });
+
+
 
         })
         .catch((error) => {

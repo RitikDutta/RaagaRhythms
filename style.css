@@ -210,6 +210,15 @@ a:hover {
     margin-top: 60%;
 }
 
+.time_stamp{
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+}
+
 /* Responsive Styles */
 @media screen and (max-width: 600px) {
     section {
