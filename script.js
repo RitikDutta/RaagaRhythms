@@ -261,14 +261,14 @@ function fetchSongs() {
                 ${song.name}
               </button>
 
-            <div class="song-details" >
+            <div class="song-details">
               <span class="detail-label">Singer:</span> ${song.singer}
               <br>
               <span class="detail-label">Composer:</span> ${song.composer}
               <br>
               <span class="detail-label">Lyricist:</span> ${song.lyricist}
             </div>
-            ${song.details ? `<div class="more-details" id="moreDetails-${index}">${song.details}</div><div class="show-more-button" onclick="toggleDetails(${index})">Show More</div>` : ""}
+            <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? 'none' : 'block'};">${song.details}</div>
           ${index !== groupedSongs[raag].length - 1 ? '<div class="separation-line"></div>' : ''}
           </li>
         `
@@ -281,21 +281,25 @@ function fetchSongs() {
             }
 
             // Attach onclick event using event delegation
-                songsContainer.addEventListener("click", function (event) {
-      const target = event.target;
-      if (target.classList.contains("song-link-button")) {
-        const videoId = target.dataset.videoid;
-        document.getElementById("YouTube-video-id").value = videoId;
-        youTubePlayerChangeVideoId();
-        event.preventDefault(); // Prevent the default behavior of the button
-      } else if (target.classList.contains("song-section")) {
-        const detailsSection = target.querySelector(".more-details");
-        if (detailsSection) {
-          detailsSection.style.display = detailsSection.style.display === "none" ? "block" : "none";
-        }
-      }
-    });
+            songsContainer.addEventListener("click", function (event) {
+                const target = event.target;
+                const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
 
+                if (listItem) {
+                    const moreDetails = listItem.querySelector(".more-details");
+
+                    if (moreDetails) {
+                        moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
+                    }
+
+                    if (target.classList.contains("song-link-button")) {
+                        const videoId = target.dataset.videoid;
+                        document.getElementById("YouTube-video-id").value = videoId;
+                        youTubePlayerChangeVideoId();
+                        event.preventDefault(); // Prevent the default behavior of the button
+                    }
+                }
+            });
 
         })
         .catch((error) => {
@@ -303,16 +307,6 @@ function fetchSongs() {
         });
 }
 
-function toggleDetails(index) {
-  const moreDetails = document.getElementById(`moreDetails-${index}`);
-  if (moreDetails.style.display === "none") {
-    moreDetails.style.display = "block";
-  } else {
-    moreDetails.style.display = "none";
-  }
-}
-
 // Call the fetchSongs function when the page loads
 document.addEventListener("DOMContentLoaded", fetchSongs);
-
 
