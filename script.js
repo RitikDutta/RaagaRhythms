@@ -227,6 +227,8 @@ function extractVideoIdFromLink(link) {
 
 
 // Function to fetch songs from Google Sheets web app and display them
+// ...
+
 function fetchSongs() {
     fetch(
         "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
@@ -259,13 +261,14 @@ function fetchSongs() {
                 ${song.name}
               </button>
 
-            <div class="song-details">
+            <div class="song-details" >
               <span class="detail-label">Singer:</span> ${song.singer}
               <br>
               <span class="detail-label">Composer:</span> ${song.composer}
               <br>
               <span class="detail-label">Lyricist:</span> ${song.lyricist}
             </div>
+            ${song.details ? `<div class="more-details" id="moreDetails-${index}">${song.details}</div><div class="show-more-button" onclick="toggleDetails(${index})">Show More</div>` : ""}
           ${index !== groupedSongs[raag].length - 1 ? '<div class="separation-line"></div>' : ''}
           </li>
         `
@@ -278,15 +281,21 @@ function fetchSongs() {
             }
 
             // Attach onclick event using event delegation
-            songsContainer.addEventListener("click", function (event) {
-              const target = event.target;
-              if (target.classList.contains("song-link-button")) {
-                const videoId = target.dataset.videoid;
-                document.getElementById("YouTube-video-id").value = videoId;
-                youTubePlayerChangeVideoId();
-                event.preventDefault(); // Prevent the default behavior of the button
-              }
-            });
+                songsContainer.addEventListener("click", function (event) {
+      const target = event.target;
+      if (target.classList.contains("song-link-button")) {
+        const videoId = target.dataset.videoid;
+        document.getElementById("YouTube-video-id").value = videoId;
+        youTubePlayerChangeVideoId();
+        event.preventDefault(); // Prevent the default behavior of the button
+      } else if (target.classList.contains("song-section")) {
+        const detailsSection = target.querySelector(".more-details");
+        if (detailsSection) {
+          detailsSection.style.display = detailsSection.style.display === "none" ? "block" : "none";
+        }
+      }
+    });
+
 
         })
         .catch((error) => {
@@ -294,5 +303,16 @@ function fetchSongs() {
         });
 }
 
+function toggleDetails(index) {
+  const moreDetails = document.getElementById(`moreDetails-${index}`);
+  if (moreDetails.style.display === "none") {
+    moreDetails.style.display = "block";
+  } else {
+    moreDetails.style.display = "none";
+  }
+}
+
 // Call the fetchSongs function when the page loads
 document.addEventListener("DOMContentLoaded", fetchSongs);
+
+
