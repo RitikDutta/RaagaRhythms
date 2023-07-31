@@ -225,12 +225,12 @@ function extractVideoIdFromLink(link) {
   return match ? match[1] : null;
 }
 
-function convertNumbersToBlue(text) {
+function replaceFormatting(text) {
   // Handle _1_ and replace with a timestamp
   text = text.replace(/_(\d+)_/g, '<button onclick="convertToTimestamp(this)" class="time_stamp">' + '$1' + '</button>');
 
   // Handle <b"text"> and replace with a blue button
-  text = text.replace(/<b"(.*?)">/g, '<b>$1</b>');
+  text = text.replace(/b\[(.*?)\]/g, '<b>$1</b>');
 
   return text;
 }
@@ -312,7 +312,7 @@ function fetchSongs() {
                 raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
                 // Check if the details are visible and convert numbers to blue if they exist
                 if (raagDetails.style.display === "block") {
-                    raagDetails.innerHTML = convertNumbersToBlue(raagDetails.innerHTML);
+                    raagDetails.innerHTML = replaceFormatting(raagDetails.innerHTML);
                 }
             }
         }
@@ -325,7 +325,7 @@ function fetchSongs() {
 
             // Check if the details are visible and convert numbers to blue if they exist
             if (moreDetails.style.display === "block") {
-              moreDetails.innerHTML = convertNumbersToBlue(moreDetails.innerHTML);
+              moreDetails.innerHTML = replaceFormatting(moreDetails.innerHTML);
             }
           }
 
