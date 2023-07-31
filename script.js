@@ -306,15 +306,15 @@ function fetchSongs() {
         const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
         const raagSection = target.closest("section");
 
-        if (raagSection && !listItem) {
-          const raagDetails = raagSection.querySelector(".raag-details");
-          if (raagDetails) {
-            raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
-            // Check if the details are visible and convert numbers to blue if they exist
-            if (raagDetails.style.display === "block") {
-              raagDetails.innerHTML = convertNumbersToBlue(raagDetails.innerHTML);
+        if (raagSection && !listItem && !target.closest(".raag-details button")) {
+            const raagDetails = raagSection.querySelector(".raag-details");
+            if (raagDetails) {
+                raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
+                // Check if the details are visible and convert numbers to blue if they exist
+                if (raagDetails.style.display === "block") {
+                    raagDetails.innerHTML = convertNumbersToBlue(raagDetails.innerHTML);
+                }
             }
-          }
         }
 
         if (listItem) {
