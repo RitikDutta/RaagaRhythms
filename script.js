@@ -231,6 +231,7 @@ function replaceFormatting(text) {
 
   // Handle <b"text"> and replace with a blue button
   text = text.replace(/b\[(.*?)\]/g, '<b>$1</b>');
+  text = text.replace(/bl\[(.*?)\]/g, '<span style="color: #33ddff">$1</span>');
 
   return text;
 }
