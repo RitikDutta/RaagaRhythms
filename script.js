@@ -226,11 +226,17 @@ function extractVideoIdFromLink(link) {
 }
 
 function convertNumbersToBlue(text) {
-  return text.replace(/_(\d+)_/g, '<button onclick="showNumberAlert(this)" class="time_stamp">' + '$1' + '</button>');
+  // Handle _1_ and replace with a timestamp
+  text = text.replace(/_(\d+)_/g, '<button onclick="convertToTimestamp(this)" class="time_stamp">' + '$1' + '</button>');
+
+  // Handle <b"text"> and replace with a blue button
+  text = text.replace(/<b"(.*?)">/g, '<b>$1</b>');
+
+  return text;
 }
 
 // Function to replace timestamp with the number from the clicked button
-function showNumberAlert(button) {
+function convertToTimestamp(button) {
   const number = button.textContent;
   youTubePlayerCurrentTimeChange(number);
 }
@@ -264,7 +270,7 @@ function fetchSongs() {
       for (const raag in groupedSongs) {
         const songElement = document.createElement("section");
         songElement.innerHTML = `
-          <h2>Raag ${raag}</h2>
+          <h2 class='raag'>Raag ${raag}</h2>
           <p class="raag-details" style="display: none;">${groupedSongs[raag].raagDetails}</p>
           <ul>
             ${groupedSongs[raag].songs
