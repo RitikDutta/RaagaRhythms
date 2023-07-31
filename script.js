@@ -229,7 +229,7 @@ function convertNumbersToBlue(text) {
   return text.replace(/_(\d+)_/g, '<button onclick="showNumberAlert(this)" class="time_stamp">' + '$1' + '</button>');
 }
 
-// Function to display the alert message with the number from the clicked button
+// Function to replace timestamp with the number from the clicked button
 function showNumberAlert(button) {
   const number = button.textContent;
   youTubePlayerCurrentTimeChange(number);
@@ -304,6 +304,10 @@ function fetchSongs() {
           const raagDetails = raagSection.querySelector(".raag-details");
           if (raagDetails) {
             raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
+            // Check if the details are visible and convert numbers to blue if they exist
+            if (raagDetails.style.display === "block") {
+              raagDetails.innerHTML = convertNumbersToBlue(raagDetails.innerHTML);
+            }
           }
         }
 
