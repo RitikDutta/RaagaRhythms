@@ -240,90 +240,98 @@ function showNumberAlert(button) {
 // ...
 
 function fetchSongs() {
-    fetch(
-        "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
-    )
-        .then((response) => response.json())
-        .then((data) => {
-            // Group songs by raag
-            const groupedSongs = {};
-            data.forEach((song) => {
-                if (!groupedSongs[song.raag]) {
-                    groupedSongs[song.raag] = [];
-                }
-                groupedSongs[song.raag].push(song);
-            });
+  fetch(
+    "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
+  )
+    .then((response) => response.json())
+    .then((data) => {
+      // Group songs by raag
+      const groupedSongs = {};
+      data.forEach((song) => {
+        if (!groupedSongs[song.raag]) {
+          groupedSongs[song.raag] = {
+            raagDetails: song.raag_details,
+            songs: [],
+          };
+        }
+        groupedSongs[song.raag].songs.push(song);
+      });
 
-            // Process the grouped songs and display them in the container
-            const songsContainer = document.getElementById("songs-container");
-            songsContainer.innerHTML = ""; // Clear previous content
+      // Process the grouped songs and display them in the container
+      const songsContainer = document.getElementById("songs-container");
+      songsContainer.innerHTML = ""; // Clear previous content
 
-            for (const raag in groupedSongs) {
-                const songElement = document.createElement("section");
-                songElement.innerHTML = `
-                  <h2>Raag ${raag}</h2>
-                  <ul>
-                    ${groupedSongs[raag]
-                      .map(
-                        (song, index) => `
-                          <li>
-                              <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
-                                ${song.name}
-                              </button>
+      for (const raag in groupedSongs) {
+        const songElement = document.createElement("section");
+        songElement.innerHTML = `
+          <h2>Raag ${raag}</h2>
+          <p class="raag-details" style="display: none;">${groupedSongs[raag].raagDetails}</p>
+          <ul>
+            ${groupedSongs[raag].songs
+              .map(
+                (song, index) => `
+                  <li>
+                      <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
+                        ${song.name}
+                      </button>
 
-                            <div class="song-details">
-                              <span class="detail-label">Singer:</span> ${song.singer}
-                              <br>
-                              <span class="detail-label">Composer:</span> ${song.composer}
-                              <br>
-                              <span class="detail-label">Lyricist:</span> ${song.lyricist}
-                            </div>
-                            <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? 'none' : 'block'};">${song.details}</div>
-                          ${index !== groupedSongs[raag].length - 1 ? '<div class="separation-line"></div>' : ''}
-                          </li>
-                        `
-                      )
-                      .join("")}
-                  </ul>
-                `;
+                    <div class="song-details">
+                      <span class="detail-label">Singer:</span> ${song.singer}
+                      <br>
+                      <span class="detail-label">Composer:</span> ${song.composer}
+                      <br>
+                      <span class="detail-label">Lyricist:</span> ${song.lyricist}
+                    </div>
+                    <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? 'none' : 'block'};">${song.details}</div>
+                  ${index !== groupedSongs[raag].songs.length - 1 ? '<div class="separation-line"></div>' : ''}
+                  </li>
+                `
+              )
+              .join("")}
+          </ul>
+        `;
 
-                songsContainer.appendChild(songElement);
+        songsContainer.appendChild(songElement);
+      }
+
+      // Attach onclick event using event delegation
+      songsContainer.addEventListener("click", function (event) {
+        const target = event.target;
+        const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
+        const raagSection = target.closest("section");
+
+        if (raagSection && !listItem) {
+          const raagDetails = raagSection.querySelector(".raag-details");
+          if (raagDetails) {
+            raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
+          }
+        }
+
+        if (listItem) {
+          const moreDetails = listItem.querySelector(".more-details");
+
+          if (moreDetails && !target.closest(".more-details button")) {
+            moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
+
+            // Check if the details are visible and convert numbers to blue if they exist
+            if (moreDetails.style.display === "block") {
+              moreDetails.innerHTML = convertNumbersToBlue(moreDetails.innerHTML);
             }
+          }
 
-            // Attach onclick event using event delegation
-            songsContainer.addEventListener("click", function (event) {
-                const target = event.target;
-                const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
-
-                if (listItem) {
-                  const moreDetails = listItem.querySelector(".more-details");
-
-                  if (moreDetails && !target.closest(".more-details button")) {
-                    moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
-
-                    // Check if the details are visible and convert numbers to blue if they exist
-                    if (moreDetails.style.display === "block") {
-                      moreDetails.innerHTML = convertNumbersToBlue(moreDetails.innerHTML);
-                    }
-                  }
-
-                  if (target.classList.contains("song-link-button")) {
-                    const videoId = target.dataset.videoid;
-                    document.getElementById("YouTube-video-id").value = videoId;
-                    youTubePlayerChangeVideoId();
-                    event.preventDefault(); // Prevent the default behavior of the button
-                  }
-                }
-              });
-
-
-
-        })
-        .catch((error) => {
-            console.error("Error fetching songs:", error);
-        });
+          if (target.classList.contains("song-link-button")) {
+            const videoId = target.dataset.videoid;
+            document.getElementById("YouTube-video-id").value = videoId;
+            youTubePlayerChangeVideoId();
+            event.preventDefault(); // Prevent the default behavior of the button
+          }
+        }
+      });
+    })
+    .catch((error) => {
+      console.error("Error fetching songs:", error);
+    });
 }
 
 // Call the fetchSongs function when the page loads
 document.addEventListener("DOMContentLoaded", fetchSongs);
-
