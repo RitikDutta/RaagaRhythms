@@ -111,6 +111,13 @@ section {
     margin-top: 5px;
 }
 
+.raag-details{
+    font-family: "Roboto", sans-serif;
+    font-size: 14px;
+    color: black;
+    margin-top: 5px;
+}
+
 .song-link-button {
   background: none;
   border: none;
@@ -128,6 +135,8 @@ section {
 li {
     margin-bottom: 25px;
 }
+
+
 
 a {
     color: #007bff;
