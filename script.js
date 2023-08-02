@@ -43,7 +43,6 @@ function onYouTubeIframeAPIReady() {
         //player.pauseVideo();
         youTubePlayerDisplayFixedInfos();
         player.playVideo();
-
     }
 
     function onStateChange(event) {
@@ -88,7 +87,7 @@ function youTubePlayerChangeVideoId() {
     var videoId = inputVideoId.value;
 
     youTubePlayer.cueVideoById({ suggestedQuality: "tiny", videoId: videoId });
-    
+
     youTubePlayerDisplayFixedInfos();
 
     youTubePlayer.playVideo();
@@ -220,65 +219,63 @@ function youTubePlayerVolumeChange(volume) {
 
 // to extracr youtube id from link
 function extractVideoIdFromLink(link) {
-  const pattern = /(?:https?:\/\/(?:www\.)?youtube\.com\/watch\?v=|https?:\/\/youtu\.be\/)([0-9A-Za-z_-]{11})/;
-  const match = pattern.exec(link);
-  return match ? match[1] : null;
+    const pattern = /(?:https?:\/\/(?:www\.)?youtube\.com\/watch\?v=|https?:\/\/youtu\.be\/)([0-9A-Za-z_-]{11})/;
+    const match = pattern.exec(link);
+    return match ? match[1] : null;
 }
 
 function replaceFormatting(text) {
-  // Handle _1_ and replace with a timestamp
-  text = text.replace(/_(\d+)_/g, '<button onclick="convertToTimestamp(this)" class="time_stamp">' + '$1' + '</button>');
+    // Handle _1_ and replace with a timestamp
+    text = text.replace(/_(\d+)_/g, '<button onclick="convertToTimestamp(this)" class="time_stamp">' + "$1" + "</button>");
 
-  // Handle <b"text"> and replace with a blue button
-  text = text.replace(/b\[(.*?)\]/g, '<b>$1</b>');
-  text = text.replace(/bl\[(.*?)\]/g, '<span style="color: #1765a3">$1</span>');
-  text = text.replace(/rd\[(.*?)\]/g, '<span style="color: lightsalmon">$1</span>');
+    // Handle <b"text"> and replace with a blue button
+    text = text.replace(/b\[(.*?)\]/g, "<b>$1</b>");
+    text = text.replace(/bl\[(.*?)\]/g, '<span style="color: #1765a3">$1</span>');
+    text = text.replace(/rd\[(.*?)\]/g, '<span style="color: lightsalmon">$1</span>');
 
-
-  return text;
+    return text;
 }
 
 // Function to replace timestamp with the number from the clicked button
 function convertToTimestamp(button) {
-  const number = button.textContent;
-  youTubePlayerCurrentTimeChange(number);
+    const number = button.textContent;
+    youTubePlayerCurrentTimeChange(number);
 }
-
 
 // Function to fetch songs from Google Sheets web app and display them
 // ...
 
 function fetchSongs() {
-  fetch(
-    "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
-  )
-    .then((response) => response.json())
-    .then((data) => {
-      // Group songs by raag
-      const groupedSongs = {};
-      data.forEach((song) => {
-        if (!groupedSongs[song.raag]) {
-          groupedSongs[song.raag] = {
-            raagDetails: song.raag_details,
-            songs: [],
-          };
-        }
-        groupedSongs[song.raag].songs.push(song);
-      });
+    fetch(
+        "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
+    )
+        .then((response) => response.json())
+        .then((data) => {
+            // Group songs by raag
+            const groupedSongs = {};
+            data.forEach((song) => {
+                if (!groupedSongs[song.raag]) {
+                    groupedSongs[song.raag] = {
+                        raagDetails: song.raag_details,
+                        songs: [],
+                    };
+                }
+                groupedSongs[song.raag].songs.push(song);
+            });
 
-      // Process the grouped songs and display them in the container
-      const songsContainer = document.getElementById("songs-container");
-      songsContainer.innerHTML = ""; // Clear previous content
+            // Process the grouped songs and display them in the container
+            const songsContainer = document.getElementById("songs-container");
+            songsContainer.innerHTML = ""; // Clear previous content
 
-      for (const raag in groupedSongs) {
-        const songElement = document.createElement("section");
-        songElement.innerHTML = `
+            for (const raag in groupedSongs) {
+                const songElement = document.createElement("section");
+                songElement.innerHTML = `
           <h2 class='raag'>Raag ${raag}</h2>
           <p class="raag-details" style="display: none;">${groupedSongs[raag].raagDetails}</p>
           <ul>
             ${groupedSongs[raag].songs
-              .map(
-                (song, index) => `
+                .map(
+                    (song, index) => `
                   <li>
                       <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
                         ${song.name}
@@ -291,59 +288,59 @@ function fetchSongs() {
                       <br>
                       <span class="detail-label">Lyricist:</span> ${song.lyricist}
                     </div>
-                    <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? 'none' : 'block'};">${song.details}</div>
-                  ${index !== groupedSongs[raag].songs.length - 1 ? '<div class="separation-line"></div>' : ''}
+                    <div class="more-details" id="moreDetails-${index}" style="display: ${song.details ? "none" : "block"};">${song.details}</div>
+                  ${index !== groupedSongs[raag].songs.length - 1 ? '<div class="separation-line"></div>' : ""}
                   </li>
                 `
-              )
-              .join("")}
+                )
+                .join("")}
           </ul>
         `;
 
-        songsContainer.appendChild(songElement);
-      }
+                songsContainer.appendChild(songElement);
+            }
 
-      // Attach onclick event using event delegation
-      songsContainer.addEventListener("click", function (event) {
-        const target = event.target;
-        const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
-        const raagSection = target.closest("section");
+            // Attach onclick event using event delegation
+            songsContainer.addEventListener("click", function (event) {
+                const target = event.target;
+                const listItem = target.closest("li"); // Find the closest <li> element to the clicked target
+                const raagSection = target.closest("section");
 
-        if (raagSection && !listItem && !target.closest(".raag-details button")) {
-            const raagDetails = raagSection.querySelector(".raag-details");
-            if (raagDetails) {
-                raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
-                // Check if the details are visible and convert numbers to blue if they exist
-                if (raagDetails.style.display === "block") {
-                    raagDetails.innerHTML = replaceFormatting(raagDetails.innerHTML);
+                if (raagSection && !listItem && !target.closest(".raag-details button")) {
+                    const raagDetails = raagSection.querySelector(".raag-details");
+                    if (raagDetails) {
+                        raagDetails.style.display = raagDetails.style.display === "none" ? "block" : "none";
+                        // Check if the details are visible and convert numbers to blue if they exist
+                        if (raagDetails.style.display === "block") {
+                            raagDetails.innerHTML = replaceFormatting(raagDetails.innerHTML);
+                        }
+                    }
                 }
-            }
-        }
 
-        if (listItem) {
-          const moreDetails = listItem.querySelector(".more-details");
+                if (listItem) {
+                    const moreDetails = listItem.querySelector(".more-details");
 
-          if (moreDetails && !target.closest(".more-details button")) {
-            moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
+                    if (moreDetails && !target.closest(".more-details button")) {
+                        moreDetails.style.display = moreDetails.style.display === "none" ? "block" : "none";
 
-            // Check if the details are visible and convert numbers to blue if they exist
-            if (moreDetails.style.display === "block") {
-              moreDetails.innerHTML = replaceFormatting(moreDetails.innerHTML);
-            }
-          }
+                        // Check if the details are visible and convert numbers to blue if they exist
+                        if (moreDetails.style.display === "block") {
+                            moreDetails.innerHTML = replaceFormatting(moreDetails.innerHTML);
+                        }
+                    }
 
-          if (target.classList.contains("song-link-button")) {
-            const videoId = target.dataset.videoid;
-            document.getElementById("YouTube-video-id").value = videoId;
-            youTubePlayerChangeVideoId();
-            event.preventDefault(); // Prevent the default behavior of the button
-          }
-        }
-      });
-    })
-    .catch((error) => {
-      console.error("Error fetching songs:", error);
-    });
+                    if (target.classList.contains("song-link-button")) {
+                        const videoId = target.dataset.videoid;
+                        document.getElementById("YouTube-video-id").value = videoId;
+                        youTubePlayerChangeVideoId();
+                        event.preventDefault(); // Prevent the default behavior of the button
+                    }
+                }
+            });
+        })
+        .catch((error) => {
+            console.error("Error fetching songs:", error);
+        });
 }
 
 // Call the fetchSongs function when the page loads
