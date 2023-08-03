@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - #codevember - 05 - music</title>
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<menu id="keys">
+  <button id="sa">Sa</button>
+  <button id="re">Re</button>
+  <button id="ga">Ga</button>
+  <button id="ma">Ma</button>
+  <button id="pa">Pa</button>
+  <button id="dha">Dha</button>
+  <button id="ni">Ni</button>
+  <button id="sa2">Sa2</button>
+</menu>
+    <div>
+        <input type="text" id="customTuneInput" placeholder="Enter your tune (e.g., sa re ga ma, pa dha ni)">
+        <button id="playCustomTune">Play Custom Tune</button>
+        <div>
+            <label for="delaySlider">Delay Between Notes:</label>
+            <input type="range" id="delaySlider" min="100" max="1000" step="100" value="200">
+            <span id="delayValue">200 ms</span>
+        </div>
+    </div>
+
+
+
+
+<!-- partial -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script><script  src="./script.js"></script>
+
+</body>
+</html>
