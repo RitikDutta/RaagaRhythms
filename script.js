@@ -40,9 +40,9 @@ function onYouTubeIframeAPIReady() {
         var player = event.target;
 
         player.loadVideoById({ suggestedQuality: suggestedQuality, videoId: videoId });
-        //player.pauseVideo();
+        player.pauseVideo();
         youTubePlayerDisplayFixedInfos();
-        player.playVideo();
+        // player.playVideo();
     }
 
     function onStateChange(event) {
@@ -58,7 +58,7 @@ function onYouTubeIframeAPIReady() {
         videoId: videoId,
         height: height,
         width: width,
-        playerVars: { autohide: 0, cc_load_policy: 0, controls: 1, disablekb: 1, iv_load_policy: 3, modestbranding: 1, rel: 0, showinfo: 0, start: 3, autoplay: 1 },
+        playerVars: { autohide: 0, cc_load_policy: 0, controls: 1, disablekb: 1, iv_load_policy: 3, modestbranding: 1, rel: 0, showinfo: 0, start: 3, autoplay: 0 },
         events: { onError: onError, onReady: onReady, onStateChange: onStateChange },
     });
 
@@ -90,7 +90,7 @@ function youTubePlayerChangeVideoId() {
 
     youTubePlayerDisplayFixedInfos();
 
-    youTubePlayer.playVideo();
+    // youTubePlayer.playVideo();
 }
 
 /**
