@@ -232,6 +232,8 @@ function replaceFormatting(text) {
     text = text.replace(/b\[(.*?)\]/g, "<b>$1</b>");
     text = text.replace(/bl\[(.*?)\]/g, '<span style="color: #1765a3">$1</span>');
     text = text.replace(/rd\[(.*?)\]/g, '<span style="color: lightsalmon">$1</span>');
+    text = text.replace(/r"(.*?)"/g, '<span style="color: lightsalmon">$1</span>');
+
 
     return text;
 }
