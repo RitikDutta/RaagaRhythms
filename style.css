@@ -5,51 +5,48 @@
 .header {
     font-family: "Great Vibes", cursive;
 }
-.header2{
-    color: lightsalmon;   
+.header2 {
+    color: lightsalmon;
 }
 
-
-
 .header {
-  position: relative;
-  margin-bottom: 0;
-  z-index: -1;
-  font-size: 40px;
-  opacity: 0; /* Start with opacity set to 0 */
-  transform: translateY(50%); /* Move the header down initially */
-  animation: move-up 2s 2s forwards, fade-in 2s forwards; /* Apply move-up and fade-in animations */
+    position: relative;
+    margin-bottom: 0;
+    z-index: -1;
+    font-size: 40px;
+    opacity: 0; /* Start with opacity set to 0 */
+    transform: translateY(50%); /* Move the header down initially */
+    animation: move-up 2s 2s forwards, fade-in 2s forwards; /* Apply move-up and fade-in animations */
 }
 
 /* Fade-in animation */
 @keyframes fade-in {
-  to {
-    opacity: 1;
-  }
+    to {
+        opacity: 1;
+    }
 }
 
 /* Move-up animation */
 @keyframes move-up {
-  from {
-    transform: translateY(50%);
-  }
-  to {
-    transform: translateY(0%);
-  }
+    from {
+        transform: translateY(50%);
+    }
+    to {
+        transform: translateY(0%);
+    }
 }
 
 .separation-line {
-  height: 1px;
-  position: relative;
-  z-index: 1;
-  background-color: #ccc;
-  opacity: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin: 10px 0; /* Adjust the margin as needed to control the separation distance */
+    height: 1px;
+    position: relative;
+    z-index: 1;
+    background-color: #ccc;
+    opacity: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 10px 0; /* Adjust the margin as needed to control the separation distance */
 }
 
-
-#video-container{
+#video-container {
     margin-bottom: 47px;
     position: absolute;
     width: 100%;
@@ -58,18 +55,18 @@
     /* margin: auto; */
 }
 
-  .show-more-button {
+.show-more-button {
     cursor: pointer;
     color: blue;
     text-decoration: underline;
-  }
+}
 
-  .more-details {
+.more-details {
     display: none;
     font-family: "Roboto", sans-serif;
     color: #666;
     margin-top: 10px;
-  }
+}
 
 body {
     font-family: Arial, sans-serif;
@@ -114,7 +111,7 @@ section {
     margin-top: 5px;
 }
 
-.raag-details{
+.raag-details {
     font-family: "Roboto", sans-serif;
     font-size: 14px;
     color: black;
@@ -122,14 +119,13 @@ section {
 }
 
 .song-link-button {
-  background: none;
-  border: none;
-  color: #007bff;
-  cursor: pointer;
-  padding: 0;
-  font: inherit;
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
 }
-
 
 .detail-label {
     font-weight: bold;
@@ -138,8 +134,6 @@ section {
 li {
     padding-top: 20px;
 }
-
-
 
 a {
     color: #007bff;
@@ -150,7 +144,6 @@ a {
 a:hover {
     color: #0056b3;
 }
-
 
 .music-controls {
     display: flex;
@@ -209,20 +202,18 @@ a:hover {
 }
 
 .music-controls input[type="checkbox"]:checked + .slider {
-    background-color: #2196F3;
+    background-color: #2196f3;
 }
 
 .music-controls input[type="checkbox"]:checked + .slider:before {
     transform: translateX(24px);
 }
 
-
-
 #content {
     margin-top: 70%;
 }
 
-.time_stamp{
+.time_stamp {
     background: none;
     border: none;
     color: #007bff;
@@ -291,8 +282,6 @@ main > section textarea {
     bottom: 0;
 }
 
-
-
 #indicator-display {
     background-color: #f0f0f0;
     border-radius: 3ex;
@@ -356,7 +345,6 @@ input:checked + .slider {
 input:checked + .slider:before {
     transform: translateX(26px); /* Increase the translation for the slider */
 }
-
 
 /* Center the buttons in the nowrap class */
 .nowrap {
