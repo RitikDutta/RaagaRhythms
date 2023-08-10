@@ -229,7 +229,7 @@ function replaceFormatting(text) {
     text = text.replace(/_(\d+)_/g, '<button onclick="convertToTimestamp(this)" class="time_stamp">' + "$1" + "</button>");
 
     // Handle _1_ and replace with a timestamp
-    text = text.replace(/li\[(.*?)\]/g, '<button onclick="convertToLink(this)" class="link">' + "$1" + "</button>");
+    text = text.replace(/li\[(.*?)\]/g, '<button id="openPopupBtn" onclick="createPopup(this)" class="link">' + "$1" + "</button>");
 
     // Handle <{b}"text"> and replace with a blue button
     text = text.replace(/b\[(.*?)\]/g, "<b>$1</b>");
@@ -255,28 +255,35 @@ function convertToTimestamp(button) {
 
 
 function getDefinitionByWord(inputWord) {
-    fetch(
-        "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
-    )
+    return new Promise((resolve, reject) => {
+        fetch(
+            "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
+        )
         .then((response) => response.json())
         .then((data) => {
             // Find the word's definition from the data
             const wordDefinition = data.words.find((word) => word.word === inputWord);
 
-            // Display the definition on your webpage
+            // Resolve the promise with the definition or appropriate message
             if (wordDefinition) {
-                // Call a function to display the definition on your webpage
-                return(wordDefinition.definition);
+                resolve(wordDefinition.definition);
             } else {
-                // If word not found, display a message or handle accordingly
-                return("NOT FOUND");
+                resolve("NOT FOUND");
             }
+        })
+        .catch((error) => {
+            // Reject the promise in case of an error
+            reject(error);
         });
+    });
 }
 
 
 
-function setupPopup() {
+
+
+function createPopup(button) {
+    const word = button.textContent;
     // Create the popup elements dynamically
     var popupContainer = document.createElement('div');
     popupContainer.className = 'popup-container';
@@ -312,20 +319,25 @@ function setupPopup() {
         popupText.textContent = text;
     }
 
-    // Add event listener to the button to open the popup
-    document.getElementById('openPopupBtn').addEventListener('click', function () {
-        openPopup();
-        addTextToPopup("This is a dynamically added text to the popup.");
-    });
-
     // Add event listener to the overlay to close the popup
     popupOverlay.addEventListener('click', function () {
         closePopup();
     });
+
+    // Call this to open the popup and add text
+    openPopup();
+
+
+    getDefinitionByWord(word)
+    .then((definition) => {
+        addTextToPopup(definition);
+    })
+    .catch((error) => {
+        addTextToPopup(error);
+    });
+
 }
 
-// Call the setupPopup function to set up the popup
-setupPopup();
 
 
 
