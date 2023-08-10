@@ -284,6 +284,7 @@ function getDefinitionByWord(inputWord) {
 
 function createPopup(button) {
     const word = button.textContent;
+
     // Create the popup elements dynamically
     var popupContainer = document.createElement('div');
     popupContainer.className = 'popup-container';
@@ -292,6 +293,10 @@ function createPopup(button) {
     var popupOverlay = document.createElement('div');
     popupOverlay.className = 'popup-overlay';
     document.body.appendChild(popupOverlay);
+
+    var loadingAnimation = document.createElement('div');
+    loadingAnimation.className = 'loading-animation';
+    popupContainer.appendChild(loadingAnimation);
 
     var popupText = document.createElement('p');
     popupText.id = 'popupText';
@@ -306,6 +311,11 @@ function createPopup(button) {
     function openPopup() {
         popupContainer.style.display = 'block';
         popupOverlay.style.display = 'block';
+
+        setTimeout(() => {
+            popupContainer.style.opacity = '1';
+            popupOverlay.style.opacity = '1';
+        }, 10); 
     }
 
     // Function to close the popup
@@ -316,6 +326,7 @@ function createPopup(button) {
 
     // Function to add text to the popup
     function addTextToPopup(text) {
+        loadingAnimation.style.display = 'none'; // Hide the loading animation
         popupText.textContent = text;
     }
 
@@ -324,10 +335,10 @@ function createPopup(button) {
         closePopup();
     });
 
-    // Call this to open the popup and add text
+    // Call this to open the popup
     openPopup();
 
-
+    // Fetch the definition and update the popup content
     getDefinitionByWord(word)
     .then((definition) => {
         addTextToPopup(definition);
@@ -335,8 +346,9 @@ function createPopup(button) {
     .catch((error) => {
         addTextToPopup(error);
     });
-
 }
+
+
 
 
 
