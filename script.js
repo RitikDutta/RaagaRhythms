@@ -307,6 +307,7 @@ function createPopup(button) {
 
     var closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
+    closeButton.className = 'popup_close'
     closeButton.onclick = closePopup;
     popupContainer.appendChild(closeButton);
 
