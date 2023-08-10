@@ -261,8 +261,11 @@ function getDefinitionByWord(inputWord) {
         )
         .then((response) => response.json())
         .then((data) => {
-            // Find the word's definition from the data
-            const wordDefinition = data.words.find((word) => word.word === inputWord);
+            // Convert the input word to lowercase for case-insensitive comparison
+            const lowerInputWord = inputWord.toLowerCase();
+
+            // Find the word's definition from the data (using lowercase comparison)
+            const wordDefinition = data.words.find((word) => word.word.toLowerCase() === lowerInputWord);
 
             // Resolve the promise with the definition or appropriate message
             if (wordDefinition) {
