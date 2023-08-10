@@ -7,14 +7,16 @@
         <link rel="stylesheet" href="./style.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
         <title>RaagaRhythms</title>
-        
+
     </head>
     <body>
         <div id="video-container" style="margin-bottom: 250px;">
             <div id="YouTube-player"></div>
         </div>
+        
         <div id="content">
             <h1 class="header">Raaga<span class="header2">Rhythms</span></h1>
+             <button id="openPopupBtn">Open Popup</button>
             <span class="margin-left-m margin-right-m" style="display: none;">
                 <label for="YouTube-video-id">videoId</label>:
                 <input id="YouTube-video-id" type="text" value="HBuGBlFRD38" size="12" pattern="[_\-0-9A-Za-z]{11}" onchange="youTubePlayerChangeVideoId();" />
@@ -40,6 +42,7 @@
                 </label>
             </div>
         </span>
+
 
         <script src="./script.js"></script>
     </body>

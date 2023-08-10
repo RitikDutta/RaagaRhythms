@@ -228,7 +228,10 @@ function replaceFormatting(text) {
     // Handle _1_ and replace with a timestamp
     text = text.replace(/_(\d+)_/g, '<button onclick="convertToTimestamp(this)" class="time_stamp">' + "$1" + "</button>");
 
-    // Handle <b"text"> and replace with a blue button
+    // Handle _1_ and replace with a timestamp
+    text = text.replace(/li\[(.*?)\]/g, '<button onclick="convertToLink(this)" class="link">' + "$1" + "</button>");
+
+    // Handle <{b}"text"> and replace with a blue button
     text = text.replace(/b\[(.*?)\]/g, "<b>$1</b>");
     text = text.replace(/bl\[(.*?)\]/g, '<span style="color: #1765a3">$1</span>');
     text = text.replace(/rd\[(.*?)\]/g, '<span style="color: lightsalmon">$1</span>');
@@ -243,6 +246,89 @@ function convertToTimestamp(button) {
     youTubePlayerCurrentTimeChange(number);
 }
 
+// Function to replace link with the text from the clicked button
+// function convertToLink(button) {
+//     const link = button.textContent;
+//     window.open(link);
+// }
+// Add event listener to open the popup
+
+
+function getDefinitionByWord(inputWord) {
+    fetch(
+        "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
+    )
+        .then((response) => response.json())
+        .then((data) => {
+            // Find the word's definition from the data
+            const wordDefinition = data.words.find((word) => word.word === inputWord);
+
+            // Display the definition on your webpage
+            if (wordDefinition) {
+                // Call a function to display the definition on your webpage
+                return(wordDefinition.definition);
+            } else {
+                // If word not found, display a message or handle accordingly
+                return("NOT FOUND");
+            }
+        });
+}
+
+
+
+function setupPopup() {
+    // Create the popup elements dynamically
+    var popupContainer = document.createElement('div');
+    popupContainer.className = 'popup-container';
+    document.body.appendChild(popupContainer);
+
+    var popupOverlay = document.createElement('div');
+    popupOverlay.className = 'popup-overlay';
+    document.body.appendChild(popupOverlay);
+
+    var popupText = document.createElement('p');
+    popupText.id = 'popupText';
+    popupContainer.appendChild(popupText);
+
+    var closeButton = document.createElement('button');
+    closeButton.textContent = 'Close';
+    closeButton.onclick = closePopup;
+    popupContainer.appendChild(closeButton);
+
+    // Function to open the popup
+    function openPopup() {
+        popupContainer.style.display = 'block';
+        popupOverlay.style.display = 'block';
+    }
+
+    // Function to close the popup
+    function closePopup() {
+        popupContainer.style.display = 'none';
+        popupOverlay.style.display = 'none';
+    }
+
+    // Function to add text to the popup
+    function addTextToPopup(text) {
+        popupText.textContent = text;
+    }
+
+    // Add event listener to the button to open the popup
+    document.getElementById('openPopupBtn').addEventListener('click', function () {
+        openPopup();
+        addTextToPopup("This is a dynamically added text to the popup.");
+    });
+
+    // Add event listener to the overlay to close the popup
+    popupOverlay.addEventListener('click', function () {
+        closePopup();
+    });
+}
+
+// Call the setupPopup function to set up the popup
+setupPopup();
+
+
+
 // Function to fetch songs from Google Sheets web app and display them
 // ...
 
@@ -254,7 +340,7 @@ function fetchSongs() {
         .then((data) => {
             // Group songs by raag
             const groupedSongs = {};
-            data.forEach((song) => {
+            data.songs.forEach((song) => {
                 if (!groupedSongs[song.raag]) {
                     groupedSongs[song.raag] = {
                         raagDetails: song.raag_details,
