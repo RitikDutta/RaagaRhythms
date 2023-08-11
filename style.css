@@ -145,6 +145,10 @@ a:hover {
     color: #0056b3;
 }
 
+.yt_con{
+    height: 68vw;
+}
+
 .music-controls {
     display: flex;
     justify-content: center;
@@ -478,3 +482,14 @@ input:checked + .slider:before {
         width: 200px;
     }
 }
+
+@media (min-width: 800px) {
+    .yt_con{
+        height: 40vw;
+    }
+    #content{
+        margin-top: 40%;
+    }
+}
+
+
