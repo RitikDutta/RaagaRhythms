@@ -230,14 +230,23 @@ function replaceFormatting(text) {
 
     // Handle _1_ and replace with a timestamp
     text = text.replace(/li\[(.*?)\]/g, '<button id="openPopupBtn" onclick="createPopup(this)" class="link">' + "$1" + "</button>");
+    
+    //for notes
+    // text = text.replace(/no\[(.*?)\]/g, '<button onclick="playthat(this)" class="note_button">' + "$1" + "</button>");
 
     // Handle <{b}"text"> and replace with a blue button
     text = text.replace(/b\[(.*?)\]/g, "<b>$1</b>");
     text = text.replace(/bl\[(.*?)\]/g, '<span style="color: #1765a3">$1</span>');
-    text = text.replace(/rd\[(.*?)\]/g, '<span style="color: lightsalmon">$1</span>');
-    text = text.replace(/r"(.*?)"/g, '<span style="color: lightsalmon">$1</span>');
+    text = text.replace(/rd\[(.*?)\]/g, '<button onclick="playthat(this)" class="note_button">' + "$1" + "</button>");
+    text = text.replace(/r"(.*?)"/g, '<button onclick="playthat(this)" class="note_button">' + "$1" + "</button>");
 
     return text;
+}
+function playthat(button){
+    var notes = button.textContent.toLowerCase()
+    console.log(notes)
+    playNotes(notes)
+
 }
 
 // Function to replace timestamp with the number from the clicked button
@@ -460,3 +469,66 @@ function fetchSongs() {
 
 // Call the fetchSongs function when the page loads
 document.addEventListener("DOMContentLoaded", fetchSongs);
+
+
+
+
+
+
+
+//PIANO
+
+var notes = {
+    'sa': 'notes/sa.mp3',
+    're': 'notes/re.mp3',
+    'ga': 'notes/ga.mp3',
+    'ma': 'notes/ma.mp3',
+    'pa': 'notes/pa.mp3',
+    'dha': 'notes/dha.mp3',
+    'ni': 'notes/ni.mp3',
+    'sa2': 'notes/sa2.mp3'
+};
+
+
+function playNotes(input, delay=300) {
+    var sequence = input.replace(/,/g, ' , ');
+    sequence = sequence.split(/\s+/); // Split by spaces
+    console.log(sequence);
+    var delayShort = delay; // Short pause duration in milliseconds
+    var delayLong = delayShort*1.5; // Long pause duration in milliseconds
+
+    function playNextNote() {
+        if (sequence.length > 0) {
+            var note = sequence.shift();
+            if (notes[note]) {
+                var audio = new Audio(notes[note]);
+                audio.play();
+                setTimeout(playNextNote, delayShort);
+            }
+        }
+    }
+
+    function playWithLongPause() {
+        if (sequence.length > 0) {
+            var note = sequence.shift();
+            if (note === ',') {
+                setTimeout(playNextNote, delayLong);
+            } else if (notes[note]) {
+                var audio = new Audio(notes[note]);
+                audio.play();
+                setTimeout(playWithLongPause, delayShort);
+            }
+        }
+    }
+
+    if (sequence[0] === ',') {
+        sequence.shift();
+        setTimeout(playNextNote, delayLong);
+    } else {
+        playWithLongPause();
+    }
+}
+
+
+
+

@@ -225,6 +225,12 @@ a:hover {
     padding: 0;
     font: inherit;
 }
+.note_button{
+    background: none;
+    border: none;
+    color: lightsalmon;
+    font-family: inherit;
+}
 
 .link {
     font-family: "Roboto", sans-serif;
