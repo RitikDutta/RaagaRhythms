@@ -490,45 +490,35 @@ var notes = {
 };
 
 
-function playNotes(input, delay=300) {
+function playNotes(input, delay = 300) {
     var sequence = input.replace(/,/g, ' , ');
     sequence = sequence.split(/\s+/); // Split by spaces
-    console.log(sequence);
+
     var delayShort = delay; // Short pause duration in milliseconds
-    var delayLong = delayShort*1.5; // Long pause duration in milliseconds
+    var delayLong = delayShort * 1.1; // Long pause duration in milliseconds
 
-    function playNextNote() {
-        if (sequence.length > 0) {
-            var note = sequence.shift();
-            if (notes[note]) {
-                var audio = new Audio(notes[note]);
-                audio.play();
-                setTimeout(playNextNote, delayShort);
-            }
-        }
-    }
-
-    function playWithLongPause() {
-        if (sequence.length > 0) {
-            var note = sequence.shift();
+    function playSequence(index) {
+        if (index < sequence.length) {
+            var note = sequence[index];
+            
             if (note === ',') {
-                setTimeout(playNextNote, delayLong);
+                setTimeout(function () {
+                    playSequence(index + 1);
+                }, delayLong);
             } else if (notes[note]) {
                 var audio = new Audio(notes[note]);
                 audio.play();
-                setTimeout(playWithLongPause, delayShort);
+                setTimeout(function () {
+                    playSequence(index + 1);
+                }, delayShort);
+            } else {
+                playSequence(index + 1); // Skip unrecognized elements
             }
         }
     }
 
-    if (sequence[0] === ',') {
-        sequence.shift();
-        setTimeout(playNextNote, delayLong);
-    } else {
-        playWithLongPause();
-    }
+    playSequence(0);
 }
 
-
-
-
+// Example usage:
+// playNotes("ga ma dha, ma dha ni, dha ni sa");
