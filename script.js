@@ -244,7 +244,7 @@ function replaceFormatting(text) {
 }
 function playthat(button){
     var notes = button.textContent.toLowerCase()
-    console.log(notes)
+    // console.log(notes)
     playNotes(notes)
 
 }
