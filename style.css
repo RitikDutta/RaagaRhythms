@@ -314,6 +314,39 @@ a:hover {
   }
 }
 
+
+
+
+footer {
+          position: relative;
+          bottom: 0;
+          top: 360px;
+          right: 0;
+          padding-bottom: 60px;
+          text-align: center;
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+          color: grey;
+        }
+
+        footer p {
+          margin: 0;
+        }
+        footer a{
+        /*  opacity: 60%;*/
+          text-decoration: none;
+          color: grey;
+          transition: 0.3s ease-in-out;
+          padding-left: 5px;
+          padding-right: 5px;
+
+        }
+        footer a:hover {
+          opacity: 0.8;
+          color: black;
+
+        }
+
     
 
 /* Responsive Styles */
@@ -495,6 +528,10 @@ input:checked + .slider:before {
     }
     #content{
         margin-top: 40%;
+    }
+
+    footer{
+        top: 100px;
     }
 }
 
