@@ -346,6 +346,27 @@ footer {
           color: black;
 
         }
+@keyframes glowAnimation {
+  0% {
+    transform: scale(1);
+    color: initial;
+  }
+  50% {
+    transform: scale(1.2);
+    color: lightsalmon;
+  }
+  100% {
+    transform: scale(1);
+    color: lightsalmon;
+  }
+}
+
+.developer {
+  animation: glowAnimation 1s ease-in-out;
+  color: lightsalmon;
+}
+
+
 
     
 
