@@ -479,6 +479,15 @@ document.addEventListener("DOMContentLoaded", fetchSongs);
 //PIANO
 
 var notes = {
+    //Lower Octave
+    'sa0': 'notes/sa0.mp3',
+    're0': 'notes/re0.mp3',
+    'ga0': 'notes/ga0.mp3',
+    'ma0': 'notes/ma0.mp3',
+    'pa0': 'notes/pa0.mp3',
+    'dha0': 'notes/dha0.mp3',
+    'ni0': 'notes/ni0.mp3',
+    //Middle Octave
     'sa': 'notes/sa.mp3',
     're': 'notes/re.mp3',
     'ga': 'notes/ga.mp3',
@@ -486,7 +495,14 @@ var notes = {
     'pa': 'notes/pa.mp3',
     'dha': 'notes/dha.mp3',
     'ni': 'notes/ni.mp3',
-    'sa2': 'notes/sa2.mp3'
+    //Upper Octave
+    'sa2': 'notes/sa2.mp3',
+    're2': 'notes/re2.mp3',
+    'ga2': 'notes/ga2.mp3',
+    'ma2': 'notes/ma2.mp3',
+    'pa2': 'notes/pa2.mp3',
+    'dha2': 'notes/dha2.mp3',
+    'ni2': 'notes/ni2.mp3'
 };
 
 
