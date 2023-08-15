@@ -314,19 +314,32 @@ a:hover {
   }
 }
 
+@keyframes footer_animation {
+  0% {
+    transform: scale(1);
+    top: 47vh;
+    opacity: 10%;
+  }
+  100% {
+    transform: scale(1);
+    top: 47vh;
+    opacity: 100%;
+  }
+}
 
 
 
 footer {
           position: relative;
           bottom: 0;
-          top: 360px;
+          top: 47vh;
           right: 0;
           padding-bottom: 60px;
           text-align: center;
           font-family: Arial, sans-serif;
           font-size: 14px;
           color: grey;
+          animation: footer_animation 1s ease-in-out;
         }
 
         footer p {
