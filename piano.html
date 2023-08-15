@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>Piano</title>
+  <link rel="stylesheet" href="./piano.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<menu id="keys">
+  <button id="sa0">Sa0</button>
+  <button id="re0">Re0</button>
+  <button id="ga0">Ga0</button>
+  <button id="ma0">Ma0</button>
+  <button id="pa0">Pa0</button>
+  <button id="dha0">Dha0</button>
+  <button id="ni0">Ni0</button>
+
+  <button id="sa">Sa</button>
+  <button id="re">Re</button>
+  <button id="ga">Ga</button>
+  <button id="ma">Ma</button>
+  <button id="pa">Pa</button>
+  <button id="dha">Dha</button>
+  <button id="ni">Ni</button>
+
+  <button id="sa2">Sa2</button>
+  <button id="re2">Re2</button>
+  <button id="ga2">Ga2</button>
+  <button id="ma2">Ma2</button>
+  <button id="pa2">Pa2</button>
+  <button id="dha2">Dha2</button>
+  <button id="ni2">Ni2</button>
+</menu>
+    <div>
+        <input type="text" id="customTuneInput" placeholder="Enter your tune (e.g., sa re ga ma, pa dha ni)">
+        <button id="playCustomTune">Play Custom Tune</button>
+        <div>
+            <label for="delaySlider">Delay Between Notes:</label>
+            <input type="range" id="delaySlider" min="100" max="1000" step="100" value="200">
+            <span id="delayValue">200 ms</span>
+        </div>
+    </div>
+
+
+
+
+<!-- partial -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script><script  src="./piano.js"></script>
+
+</body>
+</html>
+
+
