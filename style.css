@@ -317,12 +317,12 @@ a:hover {
 @keyframes footer_animation {
   0% {
     transform: scale(1);
-    top: 47vh;
+    top: 35vh;
     opacity: 10%;
   }
   100% {
     transform: scale(1);
-    top: 47vh;
+    top: 35vh;
     opacity: 100%;
   }
 }
@@ -332,7 +332,7 @@ a:hover {
 footer {
           position: relative;
           bottom: 0;
-          top: 47vh;
+          top: 35vh;
           right: 0;
           padding-bottom: 60px;
           text-align: center;
