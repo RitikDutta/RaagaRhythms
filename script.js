@@ -535,6 +535,3 @@ function playNotes(input, delay = 300) {
 
     playSequence(0);
 }
-
-// Example usage:
-// playNotes("ga ma dha, ma dha ni, dha ni sa");
