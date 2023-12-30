@@ -14,18 +14,18 @@ u can see the read only version of database [here](https://docs.google.com/sprea
 - **Responsive Design:** Enjoy seamless exploration across devices – from desktops to tablets and mobile phones.
 
 <p float="left">
-  <img src="images/img1.jpg" width="100" />
-  <img src="images/img2.jpg" width="100" /> 
-  <img src="images/img3.jpg" width="100" />
+  <img src="images/img1.jpg" width="300" />
+  <img src="images/img2.jpg" width="300" /> 
+  <img src="images/img3.jpg" width="300" />
 </p>
 <p float="left">
-  <img src="images/img4.jpg" width="100" />
-  <img src="images/img5.jpg" width="100" />
-  <img src="images/img6.jpg" width="100" />
+  <img src="images/img4.jpg" width="300" />
+  <img src="images/img5.jpg" width="300" />
+  <img src="images/img6.jpg" width="300" />
 </p>
 <p float="left">
-  <img src="images/img7.jpg" width="100" />
-  <img src="images/img8.jpg" width="100" />
+  <img src="images/img7.jpg" width="300" />
+  <img src="images/img8.jpg" width="300" />
 </p>
 
 
