@@ -2,12 +2,33 @@
 
 Raagas Webpage is a web application that invites you to embark on a mesmerizing journey through the world of Indian classical music. Immerse yourself in a curated collection of soul-stirring melodies, each resonating with the intricate beauty of different "ragas," the melodic frameworks that define Indian classical music. Delve into a harmonious blend of tradition and innovation as you explore this rich musical heritage.
 
+#Database
+I have used a simple spreadsheet database in apolication to make it implement better in mobile admin applicaion as well
+u can see the read only version of database [here](https://docs.google.com/spreadsheets/d/1HDfzOQxAwFLb363dbs6psLjwgM3V8FW2H4PsYYXvah8/edit?usp=sharing) and see how i am managing my database
+
 ## Features
 
 - **Organized Sections:** Navigate through dedicated sections for each raga, including popular ones like Raag Yaman, Raag Bhairavi, and more.
 - **Song Collection:** Discover a treasury of songs that exemplify the essence and beauty of each raga.
 - **Embedded YouTube Player:** Engage with music like never before. Click on a song title to dynamically load its YouTube video using an embedded player, allowing you to experience the melodies directly on the webpage.
 - **Responsive Design:** Enjoy seamless exploration across devices – from desktops to tablets and mobile phones.
+
+<p float="left">
+  <img src="images/img1.jpg" width="100" />
+  <img src="images/img2.jpg" width="100" /> 
+  <img src="images/img3.jpg" width="100" />
+</p>
+<p float="left">
+  <img src="images/img4.jpg" width="100" />
+  <img src="images/img5.jpg" width="100" />
+  <img src="images/img6.jpg" width="100" />
+</p>
+<p float="left">
+  <img src="images/img7.jpg" width="100" />
+  <img src="images/img8.jpg" width="100" />
+</p>
+
+
 
 ## Elevating the Experience
 
@@ -48,4 +69,5 @@ Journey deeper into each composition with intricate details. Explore the fabric 
 Your contributions are integral to enhancing this auditory odyssey. Whether you have a new raaga to share or suggestions for enriching the experience, feel free to create a pull request. Bug reports and other improvements are equally appreciated.
 
 Dive into the captivating realm of Indian classical music with RaagaRhythms. Immerse yourself in the soulful melodies, unlock the stories behind the notes, and explore a legacy that transcends time. Happy listening!
+
 
