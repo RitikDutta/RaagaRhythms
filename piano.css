@@ -123,3 +123,67 @@ h1 {
 .key.black .western-note {
     color: #bbb; /* Light color for black keys */
 }
+
+
+/* --- Sequence Player Styles --- */
+.sequence-player {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 80%;
+  max-width: 600px; /* Limit width */
+}
+
+.sequence-player h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.sequence-player label {
+  display: block; /* Make label take full width */
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+
+.sequence-player input[type="text"] {
+  width: calc(100% - 24px); /* Account for padding */
+  padding: 10px 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  box-sizing: border-box; /* Include padding in width */
+}
+
+.sequence-player button {
+  padding: 10px 25px;
+  font-size: 16px;
+  background-color: #5cb85c; /* Green */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sequence-player button:hover {
+  background-color: #4cae4c;
+}
+
+.sequence-player button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.sequence-player .info {
+  font-size: 12px;
+  color: #777;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
