@@ -221,3 +221,45 @@ h1 {
   min-width: 45px; /* Ensure enough space for "x.xx" */
   text-align: right;
 }
+
+
+/* --- Controls Row (Optional Grouping) --- */
+.controls-row {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  justify-content: center;
+  align-items: center;
+  gap: 20px; /* Spacing between control groups */
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+/* --- Speed Control Styles (No changes needed unless adjusting layout) --- */
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Spacing between label, slider, value */
+}
+/* ... existing speed-control styles ... */
+
+/* --- Pitch Control Styles --- */
+.pitch-control {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Spacing between label and select */
+}
+
+.pitch-control label {
+  margin-bottom: 0;
+  font-weight: bold;
+  color: #444;
+}
+
+.pitch-control select {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 14px;
+}

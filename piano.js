@@ -4,540 +4,315 @@ const NOTES = [
     "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
     "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5"
 ];
-
-// Sargam Mapping (Assuming C is Sa)
-// S=Sa, r=Komal Re, R=Shuddha Re, g=Komal Ga, G=Shuddha Ga, m=Shuddha Ma,
-// M=Tivra Ma, P=Pa, d=Komal Dha, D=Shuddha Dha, n=Komal Ni, N=Shuddha Ni
 const SARGAM_BASE = {
     "C": "S", "C#": "r", "D": "R", "D#": "g", "E": "G", "F": "m",
     "F#": "M", "G": "P", "G#": "d", "A": "D", "A#": "n", "B": "N"
 };
-
-// Function to get Sargam notation for display on keys
-function getSargamNotation(note) {
+function getSargamNotation(note) { /* ... no change ... */
     if (!note || note.length < 2) return { indian: '', western: note };
-    const noteName = note.slice(0, -1); // e.g., "C#", "A"
-    const octave = parseInt(note.slice(-1)); // e.g., 3, 4, 5
-
-    const sargamBase = SARGAM_BASE[noteName] || '?';
-    let indianNote = sargamBase;
-
-    // Add octave marker based on user request (0 for lower, 1 for higher)
-    if (octave === 3) indianNote += '0';
-    else if (octave === 5) indianNote += '1';
-    // Middle octave (4) has no suffix
-
-    return {
-        indian: indianNote,
-        western: note // Keep original western note name
-    };
+    const noteName = note.slice(0, -1); const octave = parseInt(note.slice(-1));
+    const sargamBase = SARGAM_BASE[noteName] || '?'; let indianNote = sargamBase;
+    if (octave === 3) indianNote += '0'; else if (octave === 5) indianNote += '1';
+    return { indian: indianNote, western: note };
 }
-
-// --- Reverse Mapping (Sargam Input -> Western Note) ---
 let WESTERN_NOTE_MAP = {};
-
-function createWesternNoteMap() {
-    WESTERN_NOTE_MAP = {}; // Reset if called again
+function createWesternNoteMap() { /* ... no change ... */
+    WESTERN_NOTE_MAP = {};
     NOTES.forEach(westernNote => {
-        // Generate the sargam notation including the octave marker
-        const { indian: sargamWithOctave } = getSargamNotation(westernNote);
-        // Also generate the base sargam note for the middle octave (4)
-        let baseSargam = null;
-        if(westernNote.endsWith('4')) {
-            const noteName = westernNote.slice(0, -1);
-            baseSargam = SARGAM_BASE[noteName] || null;
-        }
-
-        // Store mapping for notation with octave marker (e.g., "S0", "r1")
-        if (sargamWithOctave && !WESTERN_NOTE_MAP[sargamWithOctave]) {
-             WESTERN_NOTE_MAP[sargamWithOctave] = westernNote;
-        }
-        // Add mapping for lowercase version
+        const { indian: sargamWithOctave } = getSargamNotation(westernNote); let baseSargam = null;
+        if(westernNote.endsWith('4')) { const noteName = westernNote.slice(0, -1); baseSargam = SARGAM_BASE[noteName] || null; }
+        if (sargamWithOctave && !WESTERN_NOTE_MAP[sargamWithOctave]) { WESTERN_NOTE_MAP[sargamWithOctave] = westernNote; }
         const lowerSargamWithOctave = sargamWithOctave.toLowerCase();
-        if (lowerSargamWithOctave && !WESTERN_NOTE_MAP[lowerSargamWithOctave]) {
-            WESTERN_NOTE_MAP[lowerSargamWithOctave] = westernNote;
-        }
-
-        // Store mapping for middle octave base notes (without marker, e.g., "S", "g")
+        if (lowerSargamWithOctave && !WESTERN_NOTE_MAP[lowerSargamWithOctave]) { WESTERN_NOTE_MAP[lowerSargamWithOctave] = westernNote; }
         if (baseSargam) {
-             if (!WESTERN_NOTE_MAP[baseSargam]) {
-                 WESTERN_NOTE_MAP[baseSargam] = westernNote;
-             }
-             // Add mapping for lowercase version
+             if (!WESTERN_NOTE_MAP[baseSargam]) { WESTERN_NOTE_MAP[baseSargam] = westernNote; }
              const lowerBaseSargam = baseSargam.toLowerCase();
-             if (lowerBaseSargam && !WESTERN_NOTE_MAP[lowerBaseSargam]) {
-                  WESTERN_NOTE_MAP[lowerBaseSargam] = westernNote;
-             }
+             if (lowerBaseSargam && !WESTERN_NOTE_MAP[lowerBaseSargam]) { WESTERN_NOTE_MAP[lowerBaseSargam] = westernNote; }
         }
     });
-    // console.log("Western Note Map:", WESTERN_NOTE_MAP); // For debugging
 }
-createWesternNoteMap(); // Create the map immediately
+createWesternNoteMap();
 
-const A4_FREQUENCY = 440; // Hz - Standard tuning frequency for A4
+const A4_FREQUENCY = 440;
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 // --- Audio Setup ---
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
-const activeNotes = {}; // Object to store { noteName: { oscillator, gainNode } } for manual playing
-
-function initAudioContext() {
+const activeNotes = {};
+function initAudioContext() { /* ... no change ... */
     if (!audioCtx) {
-        try {
-            audioCtx = new AudioContext();
-            console.log("AudioContext initialized.");
-        } catch (e) {
-            alert('Web Audio API is not supported in this browser');
-            console.error("Error creating AudioContext:", e);
-            return false; // Indicate failure
-        }
+        try { audioCtx = new AudioContext(); console.log("AudioContext initialized."); }
+        catch (e) { alert('Web Audio API not supported...'); console.error(e); return false; }
     }
-    // Resume context if it's suspended (often needed after page load or inactivity)
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume().then(() => {
-             console.log("AudioContext resumed.");
-        });
-    }
-    return true; // Indicate success or already initialized
+    if (audioCtx.state === 'suspended') { audioCtx.resume().then(() => { console.log("AudioContext resumed."); }); }
+    return true;
 }
 
+// --- Global Pitch Shift Control ---
+const pitchSelect = document.getElementById('pitchSelect');
+let globalPitchShiftSemitones = pitchSelect ? parseInt(pitchSelect.value) : 0;
 
 // --- Frequency Calculation ---
-function getFrequency(note) {
+function getFrequency(note) { /* ... no change ... */
     if (!note || note.length < 2) return 0;
-    const noteName = note.slice(0, -1);
-    const octave = parseInt(note.slice(-1));
+    const noteName = note.slice(0, -1); const octave = parseInt(note.slice(-1));
     const noteIndex = NOTE_NAMES.indexOf(noteName);
-    if (noteIndex === -1) {
-         console.warn(`Note name not found in NOTE_NAMES: ${noteName}`);
-         return 0;
-    }
-    // Calculate number of semitones away from A4 (index 9 in octave 4)
-    const semitonesFromA4 = (octave - 4) * 12 + (noteIndex - 9);
-    return A4_FREQUENCY * Math.pow(2, semitonesFromA4 / 12);
+    if (noteIndex === -1) { console.warn(`Note name not found: ${noteName}`); return 0; }
+    const semitonesFromA4_standard = (octave - 4) * 12 + (noteIndex - 9);
+    const adjustedSemitonesFromA4 = semitonesFromA4_standard + globalPitchShiftSemitones;
+    return A4_FREQUENCY * Math.pow(2, adjustedSemitonesFromA4 / 12);
 }
-
 
 // --- Note Playback Control (Manual Piano Keys) ---
-const ATTACK_TIME = 0.02; // Time to reach full volume for manual play
-const RELEASE_TIME = 0.15; // Time to fade out after release for manual play
-
-function startNote(note) {
-    if (!initAudioContext() || !audioCtx) return; // Ensure context is ready
-    if (activeNotes[note]) return; // Already playing this note
-
-    const frequency = getFrequency(note);
-    if (frequency <= 0) return;
-
-     // Ensure context is running before playing
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume().then(() => {
-             // console.log("AudioContext resumed for startNote.");
-             startNoteInternal(note, frequency);
-        });
-    } else {
-        startNoteInternal(note, frequency);
-    }
+const ATTACK_TIME = 0.02;
+const RELEASE_TIME = 0.15;
+function startNote(note) { /* ... no change ... */
+    if (!initAudioContext() || !audioCtx) return; if (activeNotes[note]) return;
+    const frequency = getFrequency(note); if (frequency <= 0) return;
+    if (audioCtx.state === 'suspended') { audioCtx.resume().then(() => startNoteInternal(note, frequency)); }
+    else { startNoteInternal(note, frequency); }
 }
-
-function startNoteInternal(note, frequency) {
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.type = 'triangle'; // Or 'sine', 'square', 'sawtooth'
+function startNoteInternal(note, frequency) { /* ... no change ... */
+    const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.type = 'triangle';
     oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-
-    // Apply Attack
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime); // Start silent
-    gainNode.gain.linearRampToValueAtTime(0.7, audioCtx.currentTime + ATTACK_TIME); // Ramp up quickly to sustain level
-
-    oscillator.start(audioCtx.currentTime);
-
-    // Store the nodes
-    activeNotes[note] = { oscillator, gainNode };
-    // console.log("Started:", note);
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime); gainNode.gain.linearRampToValueAtTime(0.7, audioCtx.currentTime + ATTACK_TIME);
+    oscillator.start(audioCtx.currentTime); activeNotes[note] = { oscillator, gainNode };
 }
-
-
-function stopNote(note) {
-    if (!audioCtx) return; // No audio context, nothing to stop
-
-    const noteData = activeNotes[note];
+function stopNote(note) { /* ... no change ... */
+    if (!audioCtx) return; const noteData = activeNotes[note];
     if (noteData) {
-        const { oscillator, gainNode } = noteData;
-        const now = audioCtx.currentTime;
-
-        // Apply Release (fade out)
-        gainNode.gain.cancelScheduledValues(now); // Cancel any pending changes
-        gainNode.gain.setValueAtTime(gainNode.gain.value, now); // Hold current value before ramping down
-        gainNode.gain.linearRampToValueAtTime(0, now + RELEASE_TIME); // Fade to silent
-
-        // Schedule oscillator to stop *after* gain reaches 0
-        oscillator.stop(now + RELEASE_TIME + 0.05); // Add small buffer
-
-        // Remove from active notes
-        delete activeNotes[note];
-        // console.log("Stopped:", note);
+        const { oscillator, gainNode } = noteData; const now = audioCtx.currentTime;
+        gainNode.gain.cancelScheduledValues(now); gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + RELEASE_TIME);
+        oscillator.stop(now + RELEASE_TIME + 0.05); delete activeNotes[note];
     }
 }
-
 
 // --- Sequence Playback ---
 const SEQUENCE_NOTE_DURATION = 0.4; // BASE duration for single note/hyphen
 const SEQUENCE_PAUSE_DURATION = 0.2; // BASE duration for pause
+const QUICK_TRANSITION_OVERLAP = 0.06; // NEW: Amount (in seconds) to overlap notes for quick transition
 const SEQUENCE_ATTACK = 0.02;
 const SEQUENCE_RELEASE = 0.1;
 
-// Get references to speed slider elements
+// Speed Control Setup
 const speedSlider = document.getElementById('speedSlider');
 const speedValueDisplay = document.getElementById('speedValue');
-
-// Global variable to store current speed factor
-// Initialized from the slider's default value (or 1.0 if slider not found)
 let currentSpeedFactor = speedSlider ? parseFloat(speedSlider.value) : 1.0;
 
-
-// Playback function for single, fixed-pitch notes in a sequence
-function playSequenceNote(frequency, startTime, duration) {
+// Playback function for single, fixed-pitch notes (Handles varying duration)
+function playSequenceNote(frequency, startTime, duration) { /* ... no change ... */
     if (!audioCtx || frequency <= 0 || duration <= 0) return;
-
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.type = 'triangle';
+    const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.type = 'triangle';
     oscillator.frequency.setValueAtTime(frequency, startTime);
-
-    // ADSR Envelope adjusted for the specific note duration
-    // Ensure attack/release times are sensible relative to the potentially very short duration
-    const actualAttack = Math.min(SEQUENCE_ATTACK, duration * 0.2); // Attack no more than 20%
-    const actualRelease = Math.min(SEQUENCE_RELEASE, duration * 0.3); // Release no more than 30%
+    const actualAttack = Math.min(SEQUENCE_ATTACK, duration * 0.3); const actualRelease = Math.min(SEQUENCE_RELEASE, duration * 0.4);
     const sustainDuration = duration - actualAttack - actualRelease;
-
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.8, startTime + actualAttack); // Attack peak
-
-    // Schedule start of release (end of sustain)
-    if (sustainDuration > 0.001) { // Check if there's any sustain time
-         const sustainEndTime = startTime + actualAttack + sustainDuration;
-         // Ensure we don't schedule setValueAtTime in the past if duration is very short
-         if(sustainEndTime > audioCtx.currentTime) {
-            gainNode.gain.setValueAtTime(0.8, sustainEndTime); // Hold sustain level
-         }
-         // Ensure release starts after sustain or immediately after attack if no sustain
-         const releaseStartTime = Math.max(startTime + actualAttack, sustainEndTime);
-         gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + actualRelease); // Release ramp
-    } else {
-        // If note is very short (attack+release >= duration), just ramp down from peak attack
-        const releaseStartTime = startTime + actualAttack;
-         gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + actualRelease); // Ramp down over the release time
-    }
-
-    oscillator.start(startTime);
-    // Stop the oscillator slightly after the gain ramp finishes
-    oscillator.stop(startTime + duration + 0.05);
-}
-
-
-// Playback function for Meend (Glide) in a sequence
-function playMeendNote(startFreq, endFreq, startTime, duration) {
-    if (!audioCtx || startFreq <= 0 || endFreq <= 0 || duration <= 0) return;
-
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.type = 'triangle'; // Sine or triangle can work well
-
-    // Set initial frequency and schedule the ramp (the core of Meend)
-    oscillator.frequency.setValueAtTime(startFreq, startTime);
-    oscillator.frequency.linearRampToValueAtTime(endFreq, startTime + duration);
-    // oscillator.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration); // Alternative - sounds different
-
-    // Gain envelope for the glide duration
-    const attack = Math.min(SEQUENCE_ATTACK, duration * 0.1); // Shorter attack for glide start
-    const release = Math.min(SEQUENCE_RELEASE, duration * 0.1); // Shorter release for glide end
-    const sustainDuration = duration - attack - release;
-    const sustainEndTime = startTime + attack + sustainDuration;
-
-
-    gainNode.gain.setValueAtTime(0, startTime);
-    gainNode.gain.linearRampToValueAtTime(0.7, startTime + attack); // Ramp up gain quickly
-
+    gainNode.gain.setValueAtTime(0, startTime); gainNode.gain.linearRampToValueAtTime(0.8, startTime + actualAttack);
     if (sustainDuration > 0.001) {
-        // Ensure we don't schedule setValueAtTime in the past
-         if(sustainEndTime > audioCtx.currentTime) {
-            gainNode.gain.setValueAtTime(0.7, sustainEndTime); // Hold gain during glide
-         }
-         const releaseStartTime = Math.max(startTime + attack, sustainEndTime);
-         gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + release); // Ramp down gain at end
-    } else {
-        // Very short glide, just ramp down from attack peak
-        const releaseStartTime = startTime + attack;
-        gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + release);
-    }
-
-    oscillator.start(startTime);
-    // Stop the oscillator shortly after the gain ramp and frequency ramp finish
-    oscillator.stop(startTime + duration + 0.05);
+         const sustainEndTime = startTime + actualAttack + sustainDuration;
+         if(sustainEndTime > audioCtx.currentTime) { gainNode.gain.setValueAtTime(0.8, sustainEndTime); }
+         const releaseStartTime = Math.max(startTime + actualAttack, sustainEndTime);
+         gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + actualRelease);
+    } else { const releaseStartTime = startTime + actualAttack; gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + actualRelease); }
+    oscillator.start(startTime); oscillator.stop(startTime + duration + 0.05);
 }
 
+// Playback function for Meend (Glide)
+function playMeendNote(startFreq, endFreq, startTime, duration) { /* ... no change ... */
+    if (!audioCtx || startFreq <= 0 || endFreq <= 0 || duration <= 0) return;
+    const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(startFreq, startTime); oscillator.frequency.linearRampToValueAtTime(endFreq, startTime + duration);
+    const attack = Math.min(SEQUENCE_ATTACK, duration * 0.1); const release = Math.min(SEQUENCE_RELEASE, duration * 0.1);
+    const sustainDuration = duration - attack - release; const sustainEndTime = startTime + attack + sustainDuration;
+    gainNode.gain.setValueAtTime(0, startTime); gainNode.gain.linearRampToValueAtTime(0.7, startTime + attack);
+    if (sustainDuration > 0.001) {
+        if(sustainEndTime > audioCtx.currentTime) { gainNode.gain.setValueAtTime(0.7, sustainEndTime); }
+        const releaseStartTime = Math.max(startTime + attack, sustainEndTime);
+        gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + release);
+    } else { const releaseStartTime = startTime + attack; gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + release); }
+    oscillator.start(startTime); oscillator.stop(startTime + duration + 0.05);
+}
 
-// Main function to parse and play the sequence from the input box
+// Main function to parse and play sequence
 function playSequence() {
-    if (!initAudioContext() || !audioCtx) {
-        alert("Audio Context not ready. Please click on the page or a key first.");
-        return;
-    }
-
-    // Read the CURRENT speed factor when Play is clicked
-    const speedFactor = currentSpeedFactor; // Use the globally updated value
-
+    if (!initAudioContext() || !audioCtx) { alert("Audio Context not ready..."); return; }
+    const speedFactor = currentSpeedFactor;
     const sequenceInput = document.getElementById('sargamInput');
     const playButton = document.getElementById('playSequenceBtn');
-    const sequenceText = sequenceInput.value;
+    const sequenceText = sequenceInput.value; if (!sequenceText.trim()) return;
 
-    if (!sequenceText.trim()) return; // Nothing to play
-
-    // --- Enhanced Parsing Logic ---
+    // --- MODIFIED Parsing Logic for Quick Transition '_' ---
     const tokens = [];
-    // Regex to capture: Meend, Comma, Repetition, Single Note, Whitespace
-    const notePattern = "[SrRgGmMPdDnN][01]?"; // Reusable pattern for a single note+octave
+    const notePattern = "[SrRgGmMPdDnN][01]?";
+    // Regex captures:
+    // 1. Meend: (Note1)(-+)(Note2) -> Groups 1, 2, 3
+    // 2. Comma: (,) -> Group 4
+    // 3. Repetition: ((Note)(SameNote+)) -> Groups 5(Full), 6(Unit)
+    // 4. Quick Transition Note: (_)\s*(Note) -> Groups 8(Underscore), 9(Note)
+    // 5. Regular Note: (?!_)(Note) -> Group 10 (only if not preceded by _)
+    // 6. Underscore alone -> Group 11 (ignore)
+    // 7. Whitespace: (\s+) -> Group 12
     const regex = new RegExp(
-        `(${notePattern})(-+)(${notePattern})` + // 1. Meend (Group 1: Start, Group 2: Hyphens, Group 3: End)
-        `|(\\,)` +                                // 4. Comma (Group 4)
-        `|((${notePattern})(\\6+))` +             // 5. Repetition (Group 5: Full match, Group 6: Single unit)
-        `|(${notePattern})` +                     // 8. Single Note (Group 8)
-        `|(\\s+)`,                                // 9. Whitespace (Group 9)
-        'gi' // Global, Case Insensitive
+        `(${notePattern})(-+)(${notePattern})` + // 1. Meend
+        `|(\\,)` +                                // 4. Comma
+        `|((${notePattern})(\\6+))` +             // 5. Repetition
+        `|(_)\\s*(${notePattern})` +              // 8. Quick Transition Note -> Groups 8(_), 9(Note)
+        `|(?!_)(${notePattern})` +                // 10. Regular Note
+        `|(_)` +                                  // 11. Underscore alone
+        `|(\\s+)`,                                // 12. Whitespace
+        'gi'
     );
 
     let match;
+    let lastIndexProcessed = 0;
     while ((match = regex.exec(sequenceText)) !== null) {
-        // console.log("Match:", match); // Debugging regex matches
+         // console.log("Match:", match); // Debug
 
-        if (match[1] && match[2] && match[3]) { // Meend matched
-            const startNote = match[1];
-            const hyphenCount = match[2].length;
-            const endNote = match[3];
-            tokens.push({ type: 'meend', startNote, endNote, count: hyphenCount });
-        } else if (match[4]) { // Comma matched
-            // Count consecutive commas
-            let commaCount = 1;
-            let lastIndex = regex.lastIndex;
-            while (sequenceText[lastIndex] === ',') {
-                commaCount++;
-                lastIndex++;
-            }
-            regex.lastIndex = lastIndex; // Move regex index past consecutive commas
-            tokens.push({ type: 'pause', value: ',', count: commaCount });
-
-        } else if (match[5] && match[6]) { // Repetition matched
-            const fullMatch = match[5];
-            const singleNote = match[6];
-            const count = singleNote ? fullMatch.length / singleNote.length : 1;
-            tokens.push({ type: 'note', value: singleNote, count: count });
-         } else if (match[8]) { // Single Note matched
-            tokens.push({ type: 'note', value: match[8], count: 1 });
+        if (match[1] && match[2] && match[3]) { // Meend
+            tokens.push({ type: 'meend', startNote: match[1], endNote: match[3], count: match[2].length });
+        } else if (match[4]) { // Comma
+             let commaCount = 0; let currentCheckIndex = match.index;
+             while(sequenceText[currentCheckIndex] === ',') { commaCount++; currentCheckIndex++; }
+             if (match.index >= lastIndexProcessed) {
+                 tokens.push({ type: 'pause', value: ',', count: commaCount });
+                 regex.lastIndex = match.index + commaCount;
+             }
+        } else if (match[5] && match[6]) { // Repetition
+            const s = match[6]; const c = s ? match[5].length / s.length : 1;
+            // Repetitions imply normal connection, not quick transition start
+            tokens.push({ type: 'note', value: s, count: c, quickTransition: false });
+        } else if (match[8] && match[9]) { // Quick Transition Note (_Note)
+             tokens.push({ type: 'note', value: match[9], count: 1, quickTransition: true }); // Mark quick transition
+        } else if (match[10]) { // Regular Note
+            tokens.push({ type: 'note', value: match[10], count: 1, quickTransition: false });
         }
-        // Ignore whitespace (match[9])
+        // Ignore underscore alone (match[11]) and whitespace (match[12])
+
+        lastIndexProcessed = regex.lastIndex;
     }
-    // console.log("Tokens:", tokens); // Debugging parsed tokens
+    // console.log("Tokens:", tokens);
 
-    // --- Playback Scheduling ---
-    let currentTime = audioCtx.currentTime + 0.1; // Start playback shortly after click
-    let totalDuration = 0.1; // Keep track of total time for button re-enabling
+    // --- MODIFIED Playback Scheduling for Quick Transition ---
+    // 'scheduleTime' now represents the time the *next* event should *normally* start
+    let scheduleTime = audioCtx.currentTime + 0.1;
+    let totalDuration = 0.1; // Tracks total time for UI disable/enable
+    playButton.disabled = true;
 
-    playButton.disabled = true; // Disable button during playback
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        let actualStartTime = scheduleTime; // Default start time
 
-    tokens.forEach(token => {
+        // Check if this note needs a quick transition (overlap with previous)
+        if (token.type === 'note' && token.quickTransition && i > 0) {
+             // Calculate overlap, ensure it doesn't make startTime negative or before initial start
+             const overlap = QUICK_TRANSITION_OVERLAP / speedFactor; // Apply speed factor to overlap time too
+             actualStartTime = Math.max(audioCtx.currentTime + 0.01, scheduleTime - overlap);
+             // Adjust total duration calculation slightly due to overlap - approximation
+             totalDuration -= Math.min(overlap, SEQUENCE_NOTE_DURATION / speedFactor);
+        } else if (token.type === 'meend' && token.quickTransition && i > 0) { // Allow quick transition into meend? (Optional)
+             const overlap = QUICK_TRANSITION_OVERLAP / speedFactor;
+             actualStartTime = Math.max(audioCtx.currentTime + 0.01, scheduleTime - overlap);
+             totalDuration -= Math.min(overlap, SEQUENCE_NOTE_DURATION / speedFactor);
+        }
+
+
         if (token.type === 'pause') {
-            // Apply speed factor to pause duration
             const actualPauseDuration = (SEQUENCE_PAUSE_DURATION * token.count) / speedFactor;
-            currentTime += actualPauseDuration;
+            // No sound played, just advance the schedule time
+            scheduleTime = actualStartTime + actualPauseDuration; // Use actualStartTime which is same as scheduleTime here
             totalDuration += actualPauseDuration;
         }
         else if (token.type === 'note') {
-            const sargamNote = token.value;
-            const noteCount = token.count;
-            // Lookup western note (case-insensitive)
+            const sargamNote = token.value; const noteCount = token.count;
             const westernNote = WESTERN_NOTE_MAP[sargamNote] || WESTERN_NOTE_MAP[sargamNote.toLowerCase()];
 
             if (westernNote) {
                 const frequency = getFrequency(westernNote);
                 if (frequency > 0) {
-                    // Apply speed factor to note duration
+                    // Note duration is standard, regardless of quick transition flag
                     const actualNoteDuration = (SEQUENCE_NOTE_DURATION * noteCount) / speedFactor;
-                    playSequenceNote(frequency, currentTime, actualNoteDuration);
-                    currentTime += actualNoteDuration;
+                    playSequenceNote(frequency, actualStartTime, actualNoteDuration);
+                    // Next event normally starts after this one finishes
+                    scheduleTime = actualStartTime + actualNoteDuration;
                     totalDuration += actualNoteDuration;
-                } else {
-                    console.warn(`Could not get frequency for note: ${westernNote} (mapped from ${sargamNote})`);
-                    const skipDuration = (SEQUENCE_NOTE_DURATION * noteCount) / speedFactor; currentTime += skipDuration; totalDuration += skipDuration;
-                }
-            } else {
-                console.warn(`Unknown Sargam note symbol: ${sargamNote}`);
-                const skipDuration = (SEQUENCE_NOTE_DURATION * noteCount) / speedFactor; currentTime += skipDuration; totalDuration += skipDuration;
-            }
+                } else { /* warning & skip time */ const skip = (SEQUENCE_NOTE_DURATION * noteCount) / speedFactor; scheduleTime = actualStartTime + skip; totalDuration += skip; }
+            } else { /* warning & skip time */ const skip = (SEQUENCE_NOTE_DURATION * noteCount) / speedFactor; scheduleTime = actualStartTime + skip; totalDuration += skip; }
         }
         else if (token.type === 'meend') {
-            const startSargam = token.startNote;
-            const endSargam = token.endNote;
-            const meendMultiplier = token.count; // Duration based on hyphen count
-
-            // Lookup western notes (case-insensitive)
+            const startSargam = token.startNote; const endSargam = token.endNote; const meendMultiplier = token.count;
             const startWestern = WESTERN_NOTE_MAP[startSargam] || WESTERN_NOTE_MAP[startSargam.toLowerCase()];
             const endWestern = WESTERN_NOTE_MAP[endSargam] || WESTERN_NOTE_MAP[endSargam.toLowerCase()];
 
             if (startWestern && endWestern) {
-                const startFreq = getFrequency(startWestern);
-                const endFreq = getFrequency(endWestern);
-
+                const startFreq = getFrequency(startWestern); const endFreq = getFrequency(endWestern);
                 if (startFreq > 0 && endFreq > 0) {
-                    // Apply speed factor to meend duration
+                    // Meend duration is standard per hyphen
                     const actualMeendDuration = (SEQUENCE_NOTE_DURATION * meendMultiplier) / speedFactor;
-                    playMeendNote(startFreq, endFreq, currentTime, actualMeendDuration);
-                    currentTime += actualMeendDuration;
+                    playMeendNote(startFreq, endFreq, actualStartTime, actualMeendDuration);
+                    // Next event normally starts after this one finishes
+                    scheduleTime = actualStartTime + actualMeendDuration;
                     totalDuration += actualMeendDuration;
-                } else {
-                     console.warn(`Could not get frequency for Meend notes: ${startSargam}(${startFreq}) or ${endSargam}(${endFreq})`);
-                     const skipDuration = (SEQUENCE_NOTE_DURATION * meendMultiplier) / speedFactor; currentTime += skipDuration; totalDuration += skipDuration;
-                 }
-            } else {
-                 console.warn(`Unknown Sargam note in Meend: ${startSargam} or ${endSargam}`);
-                 const skipDuration = (SEQUENCE_NOTE_DURATION * meendMultiplier) / speedFactor; currentTime += skipDuration; totalDuration += skipDuration;
-            }
+                } else { /* warning & skip time */ const skip = (SEQUENCE_NOTE_DURATION * meendMultiplier) / speedFactor; scheduleTime = actualStartTime + skip; totalDuration += skip; }
+            } else { /* warning & skip time */ const skip = (SEQUENCE_NOTE_DURATION * meendMultiplier) / speedFactor; scheduleTime = actualStartTime + skip; totalDuration += skip; }
         }
-    });
+    } // End of token loop
 
-    // Re-enable the button after the sequence is scheduled to finish
-    // Use a minimum timeout in case totalDuration is very small or zero
+
     const timeoutDuration = Math.max(50, totalDuration * 1000);
-    setTimeout(() => {
-        playButton.disabled = false;
-    }, timeoutDuration);
+    setTimeout(() => { playButton.disabled = false; }, timeoutDuration);
 }
-
 
 // --- Piano Key Generation and Event Handling ---
 const pianoContainer = document.getElementById('piano');
-
-if (pianoContainer) {
-    // Calculate white key index for black key positioning (used if CSS needs it)
+if (pianoContainer) { /* ... no change ... */
     let whiteKeyIndex = 0;
     NOTES.forEach(note => {
-        const keyElement = document.createElement('div');
-        const isBlackKey = note.includes('#');
-        const notations = getSargamNotation(note); // Get both notations
-
-        keyElement.classList.add('key');
-        keyElement.classList.add(isBlackKey ? 'black' : 'white');
-        keyElement.dataset.note = note; // Store western note name
-
-        // Create and append label spans
-        const indianLabel = document.createElement('span');
-        indianLabel.classList.add('indian-note');
-        indianLabel.textContent = notations.indian;
-        keyElement.appendChild(indianLabel);
-
-        const westernLabel = document.createElement('span');
-        westernLabel.classList.add('western-note');
-        westernLabel.textContent = notations.western;
-        keyElement.appendChild(westernLabel);
-
-        // --- Event Listeners for Manual Play ---
-        const handlePress = (e) => {
-            e.preventDefault(); // Prevent default actions like text selection or scrolling
-            startNote(note);
-            keyElement.classList.add('active');
-        };
-        const handleRelease = (e) => {
-             // Check if the event target is the key itself or a child span, and if the note is active
-            if (e && (e.target === keyElement || keyElement.contains(e.target)) && activeNotes[note]) {
-                 e.preventDefault();
-                 stopNote(note);
-                 keyElement.classList.remove('active');
-            }
-        };
-        const handleLeave = (e) => {
-            // Only stop if the note is active (meaning it was pressed down)
-             if (activeNotes[note]) {
-                 stopNote(note);
-                 keyElement.classList.remove('active');
-             }
-        }
-
-        // Mouse Events
-        keyElement.addEventListener('mousedown', handlePress);
-        keyElement.addEventListener('mouseup', handleRelease);
-        keyElement.addEventListener('mouseleave', handleLeave); // Stop if mouse leaves while pressed
-
-        // Touch Events
-        // Use passive: false to allow preventDefault() inside the handler
-        keyElement.addEventListener('touchstart', handlePress, { passive: false });
-        keyElement.addEventListener('touchend', handleRelease, { passive: false });
-        keyElement.addEventListener('touchcancel', handleRelease, { passive: false }); // Handle cancellation
-
+        const keyElement = document.createElement('div'); const isBlackKey = note.includes('#'); const notations = getSargamNotation(note);
+        keyElement.classList.add('key'); keyElement.classList.add(isBlackKey ? 'black' : 'white'); keyElement.dataset.note = note;
+        const indianLabel = document.createElement('span'); indianLabel.classList.add('indian-note'); indianLabel.textContent = notations.indian; keyElement.appendChild(indianLabel);
+        const westernLabel = document.createElement('span'); westernLabel.classList.add('western-note'); westernLabel.textContent = notations.western; keyElement.appendChild(westernLabel);
+        const handlePress = (e) => { e.preventDefault(); startNote(note); keyElement.classList.add('active'); };
+        const handleRelease = (e) => { if (e && (e.target === keyElement || keyElement.contains(e.target)) && activeNotes[note]) { e.preventDefault(); stopNote(note); keyElement.classList.remove('active'); } };
+        const handleLeave = (e) => { if (activeNotes[note]) { stopNote(note); keyElement.classList.remove('active'); } }
+        keyElement.addEventListener('mousedown', handlePress); keyElement.addEventListener('mouseup', handleRelease); keyElement.addEventListener('mouseleave', handleLeave);
+        keyElement.addEventListener('touchstart', handlePress, { passive: false }); keyElement.addEventListener('touchend', handleRelease, { passive: false }); keyElement.addEventListener('touchcancel', handleRelease, { passive: false });
         pianoContainer.appendChild(keyElement);
-
-        // Increment white key index only for white keys (useful if CSS needs sequential numbering)
-        if (!isBlackKey) {
-            whiteKeyIndex++;
-        }
+        if (!isBlackKey) { whiteKeyIndex++; }
     });
-} else {
-    console.error("Piano container element not found!");
-}
-
+} else { console.error("Piano container element not found!"); }
 
 // --- Initialize Audio Context & Add Other Listeners ---
-
-// Attempt to initialize audio context on first user interaction anywhere
-// Using 'pointerdown' captures mouse, touch, and pen events generally
 document.body.addEventListener('pointerdown', initAudioContext, { once: true });
 
-// Sequence Player Button Listener
 const playButton = document.getElementById('playSequenceBtn');
-if (playButton) {
-    playButton.addEventListener('click', playSequence);
-} else {
-    console.error("Play sequence button not found!");
-}
+if (playButton) { playButton.addEventListener('click', playSequence); }
+else { console.error("Play sequence button not found!"); }
 
-// Sequence Input Listener (allow Enter key)
 const sargamInputElement = document.getElementById('sargamInput');
-if (sargamInputElement) {
-     sargamInputElement.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault(); // Prevent potential form submission
-            playSequence();
-        }
-    });
-}
+if (sargamInputElement) { sargamInputElement.addEventListener('keypress', function (e) { if (e.key === 'Enter') { e.preventDefault(); playSequence(); } }); }
 
 // Speed Slider Listener
-if (speedSlider && speedValueDisplay) {
-    // Update display initially
+if (speedSlider && speedValueDisplay) { /* ... no change ... */
     speedValueDisplay.textContent = parseFloat(speedSlider.value).toFixed(2) + 'x';
+    speedSlider.addEventListener('input', () => { currentSpeedFactor = parseFloat(speedSlider.value); speedValueDisplay.textContent = currentSpeedFactor.toFixed(2) + 'x'; });
+} else { console.warn("Speed slider or value display element not found!"); }
 
-    // Add listener for slider changes
-    speedSlider.addEventListener('input', () => {
-        currentSpeedFactor = parseFloat(speedSlider.value);
-        speedValueDisplay.textContent = currentSpeedFactor.toFixed(2) + 'x';
-        // console.log("Speed Factor Updated:", currentSpeedFactor); // For debugging
+// Pitch Select Listener
+if (pitchSelect) { /* ... no change ... */
+    pitchSelect.addEventListener('change', () => {
+        globalPitchShiftSemitones = parseInt(pitchSelect.value);
+        console.log("Global Pitch Shift set to:", globalPitchShiftSemitones, "semitones (Relative to C)");
+        Object.keys(activeNotes).forEach(noteName => stopNote(noteName));
     });
-} else {
-    console.warn("Speed slider or value display element not found!"); // Warn instead of error
-}
+} else { console.warn("Pitch select element not found!"); }
 
 // --- Update Info Text for Sequence Player ---
 const infoParagraphs = document.querySelectorAll('.sequence-player .info');
 if (infoParagraphs.length > 1) {
-    infoParagraphs[1].innerHTML = `(Notes: S R G m P D N, Komal: r g d n, Tivra: M. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend/Glide: S-G, P--S1)`;
+    // Update the second info paragraph with all notations including the new Quick Transition
+    infoParagraphs[1].innerHTML = `(Notes: S R G m P D N, Komal: r g d n, Tivra: M. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend: S-G, P--S1. Quick Transition: _R)`;
 }
