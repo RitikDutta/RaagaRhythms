@@ -16,9 +16,15 @@
       <h2>Play Sequence</h2>
       <label for="sargamInput">Enter Sargam Notes (e.g., S R G m, P D N S1):</label>
       <input type="text" id="sargamInput" placeholder="S R g m, P D n S1...">
-      <button id="playSequenceBtn">Play</button>
-      <p class="info">Use spaces between notes. Use ',' for a short pause.</p>
-       <p class="info">(Notes: S R G m P D N, Komal: r g d n, Tivra: M. Octaves: add 0 for lower, 1 for higher. e.g., S0, P, m1)</p>
+      <div class="speed-control">
+        <label for="speedSlider">Speed:</label>
+        <input type="range" id="speedSlider" min="0.25" max="4" step="0.05" value="1">
+        <span id="speedValue">1.00x</span>
+    </div>
+
+    <button id="playSequenceBtn">Play</button>
+    <p class="info">Use spaces between notes. Use ',' for a short pause.</p>
+    <p class="info">(Notes: S R G m P D N, Komal: r g d n, Tivra: M. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend/Glide: S-G, P--S1)</p>
   </div>
 
   <script src="piano.js" defer></script>
