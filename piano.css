@@ -263,3 +263,34 @@ h1 {
   cursor: pointer;
   font-size: 14px;
 }
+
+
+.reverb-control {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Spacing */
+}
+
+.reverb-control label {
+  margin-bottom: 0;
+  font-weight: bold;
+  color: #444;
+}
+
+.reverb-control input[type="range"] {
+  flex-grow: 1;
+  max-width: 150px; /* Adjust width as needed */
+  cursor: pointer;
+  margin: 0;
+}
+
+.reverb-control span {
+  font-family: monospace;
+  font-size: 14px;
+  background-color: #eee;
+  padding: 3px 6px;
+  border-radius: 3px;
+  color: #333;
+  min-width: 40px; /* Ensure space for "x.xx" */
+  text-align: right;
+}
