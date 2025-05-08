@@ -1,572 +1,772 @@
-@import url("https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+Vithkuqi&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
-
-.header {
-    font-family: "Great Vibes", cursive;
-}
-.header2 {
-    color: lightsalmon;
-}
-
-.header {
-    position: relative;
-    margin-bottom: 0;
-    z-index: -1;
-    font-size: 40px;
-    opacity: 0; /* Start with opacity set to 0 */
-    transform: translateY(50%); /* Move the header down initially */
-    animation: move-up 2s 2s forwards, fade-in 2s forwards; /* Apply move-up and fade-in animations */
-}
-
-/* Fade-in animation */
-@keyframes fade-in {
-    to {
-        opacity: 1;
-    }
-}
-
-/* Move-up animation */
-@keyframes move-up {
-    from {
-        transform: translateY(50%);
-    }
-    to {
-        transform: translateY(0%);
-    }
-}
-
-.separation-line {
-    height: 1px;
-    position: relative;
-    z-index: 1;
-    background-color: #ccc;
-    opacity: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin: 10px 0; /* Adjust the margin as needed to control the separation distance */
-}
-
-#video-container {
-    margin-bottom: 47px;
-    position: absolute;
-    width: 100%;
-    z-index: 10;
-    top: 0;
-    /* margin: auto; */
-}
-
-.show-more-button {
-    cursor: pointer;
-    color: blue;
-    text-decoration: underline;
-}
-
-.more-details {
-    display: none;
-    font-family: "Roboto", sans-serif;
-    color: #666;
-    margin-top: 10px;
-}
-
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f5f5f5;
-    touch-action: manipulation;
-}
-
-h1 {
-    text-align: center;
-    padding: 20px 0;
-    color: #333;
-}
-
-h2 {
-    color: #555;
-    margin-bottom: 10px;
-    font-family: "Noto Serif Vithkuqi", serif;
-}
-
-ul {
-    list-style: none;
-    padding: 0;
-    font-family: "Roboto", sans-serif;
-}
-
-section {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-}
-
-.song-details {
-    font-family: "Roboto", sans-serif;
-    font-size: 14px;
-    color: #666;
-    margin-top: 5px;
-}
-
-.raag-details {
-    font-family: "Roboto", sans-serif;
-    font-size: 14px;
-    color: black;
-    margin-top: 5px;
-}
-
-.song-link-button {
-    background: none;
-    border: none;
-    color: #007bff;
-    cursor: pointer;
-    padding: 0;
-    font: inherit;
-}
-
-.detail-label {
-    font-weight: bold;
-}
-
-li {
-    padding-top: 20px;
-}
-
-a {
-    color: #007bff;
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-a:hover {
-    color: #0056b3;
-}
-
-.yt_con{
-    height: 68vw;
-}
-
-.music-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    white-space: nowrap;
-    position: fixed;
-    margin: auto;
-    bottom: 0;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.music-controls button {
-    background: none;
-    border: none;
-    font-size: 24px;
-    margin: 0 10px;
-    cursor: pointer;
-}
-
-.music-controls label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-.music-controls .slider {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 26px;
-    background-color: #ccc;
-    border-radius: 13px;
-    margin-bottom: 5px;
-    transition: background-color 0.3s;
-}
-
-.music-controls .slider:before {
-    content: "";
-    position: absolute;
-    height: 22px;
-    width: 22px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform 0.3s;
-}
-
-.music-controls input[type="checkbox"] {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.music-controls input[type="checkbox"]:checked + .slider {
-    background-color: #2196f3;
-}
-
-.music-controls input[type="checkbox"]:checked + .slider:before {
-    transform: translateX(24px);
-}
-
-#content {
-    margin-top: 70%;
-}
-
-.time_stamp {
-    background: none;
-    border: none;
-    color: #007bff;
-    cursor: pointer;
-    padding: 0;
-    font: inherit;
-}
-.note_button{
-    background: none;
-    border: none;
-    color: lightsalmon;
-    font-family: inherit;
-}
-
-.link {
-    font-family: "Roboto", sans-serif;
-    background: none;
-    border: none;
-    color: inherit;
-    font-weight: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0;
-}
-
-.popup-container {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 300px;
-    max-height: 80%;
-    overflow-y: auto;
-    background-color: #f9f9f9;
-    padding: 20px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    z-index: 11;
-    opacity: 0; /* Start with opacity 0 for the fade-in effect */
-    transition: opacity 0.3s ease-in-out; /* Add a transition for opacity */
-    color: #666;
-}
-
-.popup-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    opacity: 0; /* Start with opacity 0 for the fade-in effect */
-    transition: opacity 0.3s ease-in-out; /* Add a transition for opacity */
-}
-
-.popup_close{
-    background: none;
-    border: none;
-    color: lightsalmon;
-    cursor: pointer;
-    padding: 0;
-    font: inherit;
-}
-
-.loading-animation {
-  width: 100%;
-  height: 4.8px;
-  display: inline-block;
-  background: lightsalmon;
-  position: relative;
-  overflow: hidden;
-}
-.loading-animation::after {
-  content: '';  
-  width: 0%;
-  height: 4.8px;
-  background-color: black;
-  background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.25) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.25) 75%, transparent 75%, transparent);
-  background-size: 15px 15px;
-  position: absolute;
-  top: 0;
-  left: 0;
-  box-sizing: border-box;
-  animation: animFw 4s ease-in infinite;
-}
-
-@keyframes animFw {
-  0% {
-    width: 0;
-  }
-  100% {
-    width: 100%;
-  }
-}
-
-@keyframes footer_animation {
-  0% {
-    transform: scale(1);
-    top: 35vh;
-    opacity: 10%;
-  }
-  100% {
-    transform: scale(1);
-    top: 35vh;
-    opacity: 100%;
-  }
-}
-
-
-
-footer {
-          position: relative;
-          bottom: 0;
-          top: 35vh;
-          right: 0;
-          padding-bottom: 60px;
-          text-align: center;
-          font-family: Arial, sans-serif;
-          font-size: 14px;
-          color: grey;
-          animation: footer_animation 1s ease-in-out;
-        }
-
-        footer p {
-          margin: 0;
-        }
-        footer a{
-        /*  opacity: 60%;*/
-          text-decoration: none;
-          color: grey;
-          transition: 0.3s ease-in-out;
-          padding-left: 5px;
-          padding-right: 5px;
-
-        }
-        footer a:hover {
-          opacity: 0.8;
-          color: black;
-
-        }
-@keyframes glowAnimation {
-  0% {
-    transform: scale(1);
-    color: initial;
-  }
-  50% {
-    transform: scale(1.2);
-    color: lightsalmon;
-  }
-  100% {
-    transform: scale(1);
-    color: lightsalmon;
-  }
-}
-
-.developer {
-  animation: glowAnimation 1s ease-in-out;
-  color: lightsalmon;
-}
-
-
-
-    
-
-/* Responsive Styles */
-@media screen and (max-width: 600px) {
-    section {
-        padding: 10px;
-    }
-}
-
-main {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-
-main > section {
-    margin-bottom: 1em;
-}
-
-main > section div.framed > div {
-    border: 1px solid black;
-    margin-bottom: 1ex;
-    padding: 1ex;
-}
-
-main > section button {
-    padding: 0.5ex 1em;
-}
-
-main > section input[type="range"] {
-    width: 400px;
-}
-
-main > section label[for^="YouTube-player-"] {
-    position: absolute;
-}
-
-main > section textarea {
-    height: 9ex;
-    margin: 0;
-    padding: 0;
-    vertical-align: top;
-    width: 99%;
-}
-
-.center {
-    text-align: center;
-}
-
-.margin-left-m {
-    margin-left: 1em;
-}
-.margin-right-m {
-    margin-right: 1em;
-}
-
-.nowrap {
-    white-space: nowrap;
-    position: fixed;
-    margin: auto;
-    bottom: 0;
-}
-
-#indicator-display {
-    background-color: #f0f0f0;
-    border-radius: 3ex;
-    display: inline-block;
-    float: right;
-    font-family: monospace;
-    height: 2ex;
-    line-height: 2ex;
-    margin: 1ex 1ex 0 0;
-    padding: 1ex;
-    text-align: center;
-    vertical-align: middle;
-    width: 2ex;
-}
-
-#YouTube-video-id {
-    font-family: monospace;
-}
-
-.toggle-slider {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 24px;
-}
-
-.toggle-slider input {
-    display: none;
-}
-
-/* Slider background */
-.slider {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    cursor: pointer;
-    background-color: #ccc;
-    border-radius: 34px;
-    transition: background-color 0.3s;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform 0.3s;
-}
-
-/* Slider on state */
-input:checked + .slider {
-    background-color: #2196f3;
-}
-
-input:checked + .slider:before {
-    transform: translateX(26px); /* Increase the translation for the slider */
-}
-
-/* Center the buttons in the nowrap class */
-.nowrap {
-    text-align: center;
-    position: fixed;
-    margin: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-}
-
-/* Add some padding to the buttons */
-.nowrap button {
-    padding: 10px 20px;
-    margin: 5px;
-    background-color: lightskyblue;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-}
-
-/* Add hover effect to buttons */
-.nowrap button:hover {
-    background-color: #0056b3;
-}
-
-@media (max-width: 600px) {
-    main > section iframe {
-        height: 240px;
-        width: 320px;
-    }
-
-    main > section input[type="range"] {
-        width: 320px;
-    }
-}
-
-@media (max-width: 400px) {
-    main > section iframe {
-        height: 200px;
-        width: 200px;
-    }
-
-    main > section input[type="range"] {
-        width: 200px;
-    }
-}
-
-@media (min-width: 800px) {
-    .yt_con{
-        height: 40vw;
-    }
-    #content{
-        margin-top: 40%;
-    }
-
-    footer{
-        top: 100px;
-    }
-}
-
-
+/* ==========================================================================
+   1. Imports & Variables
+   ========================================================================== */
+   @import url("https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap");
+   @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+Vithkuqi:wght@400;600;700&display=swap");
+   @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
+   
+   :root {
+       --bg-primary: #100c08; /* Deep, warm black (like aged wood) */
+       --bg-secondary: #281c12; /* Dark brown for cards/sections */
+       --bg-tertiary: #3c2a1c; /* Lighter brown for hover/accent */
+       --bg-player: #0a0805; /* Very dark for player background */
+   
+       --text-primary: #f5eadd; /* Warm off-white, like parchment */
+       --text-secondary: #d3c1ae; /* Muted beige */
+       --text-tertiary: #a8978a; /* Greyish brown for less important text */
+   
+       --accent-gold: #daa520; /* Old gold - primary accent */
+       --accent-amber: #ffbf00; /* Brighter amber for highlights */
+       --accent-copper: #b87333; /* Copper for secondary accents / Raag titles */
+   
+       --font-header: "Great Vibes", cursive;
+       --font-raag: "Noto Serif Vithkuqi", serif;
+       --font-body: "Roboto", sans-serif;
+   
+       --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.3);
+       --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.4);
+       --shadow-lg: 0 10px 30px rgba(0,0,0, 0.5);
+   
+       --border-radius-sm: 4px;
+       --border-radius-md: 8px;
+       --border-radius-lg: 12px;
+       --transition-speed: 0.3s;
+       --transition-bounce: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+   }
+   
+   /* ==========================================================================
+      2. Base & Reset
+      ========================================================================== */
+   *,
+   *::before,
+   *::after {
+       box-sizing: border-box;
+       margin: 0;
+       padding: 0;
+   }
+   
+   html {
+       scroll-behavior: smooth;
+       font-size: 16px; /* Base font size */
+   }
+   
+   body {
+       font-family: var(--font-body);
+       background-color: var(--bg-primary);
+       color: var(--text-primary);
+       line-height: 1.7;
+       padding: 0;
+       padding-bottom: 100px; /* Space for fixed music controls */
+       touch-action: manipulation;
+       overflow-x: hidden;
+       -webkit-font-smoothing: antialiased;
+       -moz-osx-font-smoothing: grayscale;
+   }
+   
+   /* GSAP: Initial element states for animation */
+   .gsap-fade-in { opacity: 0; }
+   .gsap-fade-in-up { opacity: 0; transform: translateY(30px); }
+   
+   /* ==========================================================================
+      3. Typography
+      ========================================================================== */
+   h1, h2, h3, h4, h5, h6 {
+       font-weight: 500;
+       line-height: 1.3;
+       color: var(--text-primary);
+   }
+   
+   a {
+       color: var(--accent-amber);
+       text-decoration: none;
+       transition: color var(--transition-speed) ease, text-shadow var(--transition-speed) ease;
+   }
+   
+   a:hover {
+       color: var(--accent-gold);
+       text-shadow: 0 0 5px var(--accent-gold);
+   }
+   
+   ul { list-style: none; }
+   
+   p { margin-bottom: 1rem; }
+   p:last-child { margin-bottom: 0; }
+   
+   /* ==========================================================================
+      4. Header (RaagaRhythms Title)
+      ========================================================================== */
+   .header-wrapper { /* Create a wrapper for the h1 in HTML if you want more control */
+       text-align: center;
+       padding: clamp(60px, 10vh, 100px) 20px 30px;
+       position: relative;
+       z-index: 5;
+       /* GSAP: Animate this container or individual elements */
+   }
+   
+   h1.header {
+       font-family: var(--font-header);
+       font-size: clamp(4rem, 10vw, 7rem);
+       font-weight: normal;
+       color: var(--text-primary);
+       margin-bottom: -0.1em; /* Fine-tune spacing with .header2 */
+       display: inline-block;
+       line-height: 1;
+       /* CSS Animation Fallback */
+       opacity: 0;
+       transform: translateY(30px);
+       animation: fadeInHeader 1s var(--transition-speed) forwards ease-out;
+   }
+   
+   h1.header .header2 {
+       color: var(--accent-gold);
+       font-family: var(--font-header); /* Ensure consistency */
+   }
+   
+   @keyframes fadeInHeader {
+       to { opacity: 1; transform: translateY(0); }
+   }
+   /* GSAP recommendation:
+      gsap.from(".header", { opacity: 0, y: 50, duration: 1, delay: 0.3, ease: "power3.out" });
+   */
+   
+   /* Hide the VideoID input (original request) */
+   #content > span:first-of-type[class*="margin-left-m"] {
+       display: none !important;
+   }
+   
+   /* ==========================================================================
+      5. YouTube Player
+      ========================================================================== */
+   #video-container {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       background-color: var(--bg-player);
+       box-shadow: var(--shadow-md);
+       z-index: 10;
+       transition: all 0.5s var(--transition-bounce); /* For smooth fixed toggle */
+       height: 56.25vw; /* 16:9 aspect ratio */
+       max-height: 70vh; /* Max height in normal flow */
+   }
+   
+   #YouTube-player {
+       width: 100%;
+       height: 100%;
+       border: none; /* Remove iframe border */
+   }
+   
+   /* Fixed Player Mode (toggled by JS adding .fixed-player-mode to #video-container) */
+   #video-container.fixed-player-mode {
+       position: fixed !important;
+       top: 20px;
+       left: 20px;
+       width: clamp(280px, 25vw, 400px) !important; /* Responsive fixed width */
+       height: auto !important;
+       aspect-ratio: 16 / 9;
+       border-radius: var(--border-radius-md);
+       box-shadow: var(--shadow-lg);
+       z-index: 1000; /* Ensure it's on top */
+       border: 2px solid var(--accent-gold);
+   }
+   
+   @media (min-width: 800px) {
+       #video-container {
+           height: 40vw; /* As per original media query */
+       }
+   }
+   
+   /* ==========================================================================
+      6. Main Content Area
+      ========================================================================== */
+   #content {
+       margin-top: calc(56.25vw + 40px); /* Space for player + padding */
+       max-width: 960px;
+       margin-left: auto;
+       margin-right: auto;
+       padding: 20px;
+       position: relative;
+       z-index: 1;
+   }
+   @media (min-width: 800px) {
+       #content {
+           margin-top: calc(40vw + 40px);
+       }
+   }
+   
+   #songs-wrapper {
+       margin-top: 20px;
+   }
+   
+   #songs-container {
+       display: grid;
+       gap: clamp(25px, 4vw, 40px);
+   }
+   
+   /* ==========================================================================
+      7. Raag Sections
+      ========================================================================== */
+   /* Each <section> within #songs-container is a Raag section */
+   #songs-container > section {
+       background: linear-gradient(145deg, var(--bg-secondary), var(--bg-tertiary));
+       border-radius: var(--border-radius-lg);
+       padding: clamp(20px, 3vw, 30px);
+       box-shadow: var(--shadow-md);
+       transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+       position: relative;
+       overflow: hidden; /* For pseudo-elements */
+       /* GSAP: Animate this section using a class like .gsap-fade-in-up */
+       /* CSS Animation Fallback */
+       opacity: 0;
+       transform: translateY(20px);
+       animation: fadeInSection 0.7s forwards ease-out;
+       animation-delay: calc(var(--section-index, 0) * 0.15s + 0.5s); /* Stagger */
+   }
+   /* JS should add --section-index to each section for stagger:
+      document.querySelectorAll('#songs-container > section').forEach((section, index) => {
+        section.style.setProperty('--section-index', index);
+      });
+   */
+   
+   @keyframes fadeInSection {
+       to { opacity: 1; transform: translateY(0); }
+   }
+   
+   #songs-container > section::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 5px;
+       height: 100%;
+       background: var(--accent-copper);
+       border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
+       transition: transform 0.4s ease;
+       transform: scaleY(0);
+       transform-origin: bottom;
+   }
+   #songs-container > section:hover::before {
+       transform: scaleY(1);
+       transform-origin: top;
+   }
+   
+   #songs-container > section:hover {
+       transform: translateY(-5px) scale(1.01);
+       box-shadow: var(--shadow-lg);
+   }
+   
+   h2.raag { /* Raag Title */
+       font-family: var(--font-raag);
+       font-size: clamp(1.8rem, 4vw, 2.8rem);
+       font-weight: 600;
+       color: var(--accent-copper);
+       margin-bottom: 1rem;
+       padding-bottom: 0.5rem;
+       border-bottom: 2px solid var(--accent-gold);
+       display: inline-block;
+       cursor: pointer;
+       transition: color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+       position: relative; /* For ::after pseudo-element */
+   }
+   h2.raag::after { /* Small decorative element */
+       content: '🎶'; /* Or any other musical symbol/SVG */
+       font-size: 0.7em;
+       position: absolute;
+       right: -1.2em;
+       top: 50%;
+       transform: translateY(-50%);
+       color: var(--accent-gold);
+       opacity: 0.6;
+       transition: opacity var(--transition-speed) ease, right var(--transition-speed) ease;
+   }
+   h2.raag:hover {
+       color: var(--accent-gold);
+       border-color: var(--accent-copper);
+   }
+   h2.raag:hover::after {
+       opacity: 1;
+       right: -1.5em;
+   }
+   
+   .raag-details {
+       font-family: var(--font-body);
+       font-size: 0.95rem;
+       color: var(--text-secondary);
+       margin-top: 1rem;
+       margin-bottom: 1.5rem;
+       padding-left: 15px;
+       border-left: 3px solid var(--accent-gold);
+       line-height: 1.8;
+       /* For JS class toggle animation */
+       max-height: 0;
+       opacity: 0;
+       overflow: hidden;
+       transition: max-height 0.5s ease-in-out, opacity 0.4s ease-in-out,
+                   margin-top 0.5s ease-in-out, padding-top 0.5s ease-in-out, padding-bottom 0.5s ease-in-out;
+   }
+   .raag-details.open {
+       max-height: 1500px; /* Adjust if very long content */
+       opacity: 1;
+       margin-top: 1rem;
+       padding-top: 0.5rem;
+       padding-bottom: 0.5rem;
+   }
+   .raag-details p { font-size: inherit; }
+   
+   /* ==========================================================================
+      8. Song List & Items
+      ========================================================================== */
+   section ul { padding-left: 0; }
+   
+   section li {
+       padding: 1rem 0;
+       border-bottom: 1px dashed var(--bg-tertiary); /* Softer separator */
+       transition: background-color var(--transition-speed) ease;
+   }
+   section li:last-child { border-bottom: none; }
+   section li:hover { background-color: rgba(218, 165, 32, 0.05); /* Faint gold hover */ }
+   
+   .song-link-button {
+       background: none;
+       border: none;
+       color: var(--accent-amber);
+       cursor: pointer;
+       padding: 0;
+       font-family: var(--font-raag);
+       font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+       font-weight: 500;
+       text-align: left;
+       transition: color var(--transition-speed) ease, letter-spacing var(--transition-speed) ease;
+       margin-bottom: 0.5rem;
+       display: block; /* Make it full width for easier click */
+   }
+   .song-link-button:hover {
+       color: var(--accent-gold);
+       letter-spacing: 0.5px; /* Subtle hover effect */
+       text-decoration: none;
+   }
+   
+   .song-details {
+       font-family: var(--font-body);
+       font-size: 0.85rem;
+       color: var(--text-tertiary);
+       margin-top: 0.3rem;
+       padding-left: 1rem;
+       line-height: 1.6;
+   }
+   .detail-label {
+       font-weight: 500;
+       color: var(--text-secondary);
+   }
+   
+   .more-details {
+       font-family: var(--font-body);
+       font-size: 0.9rem;
+       color: var(--text-secondary);
+       margin-top: 0.8rem;
+       padding: 0.8rem 1rem;
+       background-color: rgba(0,0,0,0.15); /* Darker inset background */
+       border-radius: var(--border-radius-sm);
+       border-left: 3px solid var(--accent-amber);
+       line-height: 1.8;
+       /* For JS class toggle animation */
+       max-height: 0;
+       opacity: 0;
+       overflow: hidden;
+       transition: max-height 0.5s ease-in-out, opacity 0.4s ease-in-out,
+                   margin-top 0.5s ease-in-out, padding 0.5s ease-in-out;
+   }
+   .more-details.open {
+       max-height: 1000px; /* Adjust if needed */
+       opacity: 1;
+       margin-top: 0.8rem;
+       padding: 0.8rem 1rem;
+   }
+   .more-details p { font-size: inherit; }
+   
+   /* Remove old separation line style */
+   .separation-line { display: none; }
+   
+   /* ==========================================================================
+      9. Interactive Elements (Timestamps, Links, Notes)
+      ========================================================================== */
+   .time_stamp,
+   .note_button,
+   .link { /* Common base for custom buttons from JS */
+       background: transparent;
+       border: 1px solid transparent; /* For consistent sizing on hover */
+       cursor: pointer;
+       padding: 3px 6px;
+       border-radius: var(--border-radius-sm);
+       transition: all var(--transition-speed) ease;
+       font-family: inherit;
+       font-size: inherit;
+       margin: 0 2px; /* Small spacing */
+   }
+   
+   .time_stamp {
+       color: var(--accent-amber);
+       font-weight: bold;
+       border-color: rgba(218, 165, 32, 0.3); /* Faint border */
+   }
+   .time_stamp:hover {
+       background-color: var(--accent-amber);
+       color: var(--bg-primary);
+       border-color: var(--accent-amber);
+       text-decoration: none;
+       box-shadow: 0 0 8px var(--accent-amber);
+   }
+   
+   .note_button {
+       color: var(--accent-copper);
+       font-style: italic;
+       border-color: rgba(184, 115, 51, 0.3);
+   }
+   .note_button:hover {
+       background-color: var(--accent-copper);
+       color: var(--text-primary);
+       border-color: var(--accent-copper);
+       text-decoration: none;
+       box-shadow: 0 0 8px var(--accent-copper);
+   }
+   
+   .link { /* For popup trigger */
+       color: var(--accent-gold);
+       text-decoration: underline;
+       text-decoration-style: dotted;
+       text-underline-offset: 3px;
+       border: none; /* No border for plain links */
+   }
+   .link:hover {
+       color: var(--accent-amber);
+       background-color: rgba(218, 165, 32, 0.1);
+       text-decoration-style: solid;
+       text-decoration: underline; /* Ensure underline stays on hover */
+   }
+   
+   /* Custom formatting from JS */
+   b { color: var(--text-primary); font-weight: bold; }
+   span[style*="color: #1765a3"] { color: #82c0ff !important; /* Lighter blue for dark theme */ }
+   
+   /* ==========================================================================
+      10. Popup
+      ========================================================================== */
+   .popup-overlay { /* JS handles display */
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background-color: rgba(16, 12, 8, 0.7); /* Dark overlay based on --bg-primary */
+       backdrop-filter: blur(3px);
+       z-index: 1000;
+       opacity: 0;
+       transition: opacity var(--transition-speed) ease-in-out;
+   }
+   .popup-overlay.visible { opacity: 1; } /* JS toggles this */
+   
+   .popup-container { /* JS handles display */
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%) scale(0.9);
+       width: clamp(300px, 85vw, 550px);
+       max-height: 80vh;
+       overflow-y: auto;
+       background: linear-gradient(145deg, var(--bg-secondary), var(--bg-tertiary));
+       padding: clamp(20px, 4vw, 30px);
+       box-shadow: var(--shadow-lg);
+       border-radius: var(--border-radius-lg);
+       border-top: 3px solid var(--accent-gold);
+       z-index: 1001;
+       opacity: 0;
+       transition: opacity var(--transition-speed) ease-in-out, transform 0.4s var(--transition-bounce);
+       color: var(--text-primary);
+   }
+   .popup-container.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); } /* JS toggles this */
+   
+   .popup-container::-webkit-scrollbar { width: 10px; }
+   .popup-container::-webkit-scrollbar-thumb { background-color: var(--accent-gold); border-radius: 5px; border: 2px solid var(--bg-secondary); }
+   .popup-container::-webkit-scrollbar-track { background-color: var(--bg-tertiary); }
+   
+   .loading-animation {
+       width: 100%;
+       height: 6px;
+       display: block;
+       background: var(--bg-tertiary);
+       position: relative;
+       overflow: hidden;
+       border-radius: 3px;
+       margin-bottom: 1.5rem;
+   }
+   .loading-animation::after {
+       content: '';
+       width: 0%;
+       height: 100%;
+       background: var(--accent-gold);
+       position: absolute;
+       top: 0;
+       left: 0;
+       animation: loadingBarAnim 1.5s linear infinite;
+   }
+   @keyframes loadingBarAnim {
+       0% { width: 0; left: 0; }
+       50% { width: 100%; left: 0; }
+       50.01% { width: 100%; left: auto; right: 0; } /* Jump to right for reverse */
+       100% { width: 0%; left: auto; right: 0; }
+   }
+   
+   #popupText { color: var(--text-primary); font-size: 1rem; line-height: 1.8; }
+   #popupText p { margin-bottom: 0.8em; }
+   
+   .popup_close {
+       background: var(--accent-gold);
+       border: none;
+       color: var(--bg-primary);
+       cursor: pointer;
+       padding: 0.6em 1.2em;
+       font: inherit;
+       font-weight: 500;
+       font-size: 0.9rem;
+       border-radius: var(--border-radius-sm);
+       display: block;
+       margin: 1.5rem auto 0;
+       transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+   }
+   .popup_close:hover {
+       background-color: var(--accent-amber);
+       transform: translateY(-2px);
+       box-shadow: 0 4px 10px rgba(218, 165, 32, 0.3);
+       text-decoration: none;
+   }
+   
+   /* ==========================================================================
+      11. Music Controls
+      ========================================================================== */
+   .music-controls {
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       position: fixed;
+       bottom: 0;
+       left: 0;
+       width: 100%;
+       padding: 15px 10px;
+       background-color: rgba(10, 8, 5, 0.85); /* var(--bg-player) with alpha */
+       backdrop-filter: blur(8px);
+       box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.4);
+       z-index: 999;
+       gap: clamp(10px, 3vw, 20px);
+   }
+   
+   .music-controls button {
+       background: transparent;
+       border: 1px solid transparent;
+       color: var(--text-secondary);
+       font-size: clamp(1.5rem, 4vw, 1.8rem);
+       cursor: pointer;
+       padding: 10px;
+       border-radius: 50%;
+       width: 50px;
+       height: 50px;
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       transition: all var(--transition-speed) ease;
+   }
+   .music-controls button:hover {
+       color: var(--accent-gold);
+       background-color: var(--bg-tertiary);
+       border-color: var(--accent-gold);
+       transform: scale(1.1);
+   }
+   .music-controls button:active {
+       transform: scale(0.95);
+       background-color: var(--accent-gold);
+       color: var(--bg-primary);
+   }
+   
+   /* Toggle Switch for Fixed Player */
+   .music-controls .toggle-slider { /* The label */
+       display: flex;
+       align-items: center;
+       cursor: pointer;
+       padding: 10px; /* Make clickable area larger */
+       border-radius: 50%; /* Consistent with buttons */
+       transition: background-color var(--transition-speed) ease;
+   }
+   .music-controls .toggle-slider:hover {
+       background-color: var(--bg-tertiary);
+   }
+   
+   .toggle-slider input[type="checkbox"] { opacity: 0; width: 0; height: 0; position: absolute; }
+   
+   .toggle-slider .slider { /* Visual track */
+       position: relative;
+       display: inline-block;
+       width: 44px; /* Slightly smaller for a sleek look */
+       height: 22px;
+       background-color: var(--bg-tertiary);
+       border-radius: 11px;
+       transition: background-color var(--transition-speed) ease;
+       margin-left: 8px; /* Space from potential icon if added */
+   }
+   .toggle-slider .slider::before { /* Visual knob */
+       content: "";
+       position: absolute;
+       height: 18px;
+       width: 18px;
+       left: 2px;
+       bottom: 2px;
+       background-color: var(--text-secondary);
+       border-radius: 50%;
+       transition: transform var(--transition-speed) var(--transition-bounce), background-color var(--transition-speed) ease;
+   }
+   
+   /* Toggle Switch Checked State */
+   .toggle-slider input[type="checkbox"]:checked + .slider {
+       background-color: var(--accent-gold);
+   }
+   .toggle-slider input[type="checkbox"]:checked + .slider::before {
+       transform: translateX(22px);
+       background-color: var(--bg-primary);
+   }
+   /* Adding a visual cue for the toggle, like a pin icon */
+   .toggle-slider::before { /* This is for an icon before the slider itself */
+       font-family: "Font Awesome 6 Free"; /* Make sure Font Awesome is linked */
+       font-weight: 900;
+       content: "\f08d"; /* fa-thumbtack (pin icon) */
+       color: var(--text-secondary);
+       font-size: 1.1rem;
+       transition: color var(--transition-speed) ease;
+   }
+   .toggle-slider:hover::before,
+   .toggle-slider input[type="checkbox"]:checked ~ .slider::before /* Wrong selector, this targets knob */
+   {
+       /* color: var(--accent-gold); */ /* Already handled by parent hover */
+   }
+   .toggle-slider input[type="checkbox"]:checked ~ span::before { /* This would target the icon if it's inside the span.slider */
+       /* color: var(--accent-gold); */
+   }
+   /* Corrected logic for icon color change */
+   .toggle-slider:hover::before,
+   .toggle-slider input[type="checkbox"]:checked + .slider + span::before, /* If icon is after slider */
+   .toggle-slider input[type="checkbox"]:checked ~ i /* If icon is a sibling <i> tag */
+   {
+       /* This depends on HTML structure. Simpler to just use hover on .toggle-slider for icon color */
+   }
+   .toggle-slider:hover::before {
+       color: var(--accent-gold);
+   }
+   .toggle-slider input[type="checkbox"]:checked + .slider { /* This implies the icon is part of the label, before the input */
+       /* To change icon color when checked, icon needs to be after checkbox in DOM, or use JS */
+   }
+   /* Let's assume the ::before is on the label and it gets colored on label hover or when checked. */
+   .toggle-slider input[type="checkbox"]:checked + .slider {
+       /* This is for the slider background. Icon color change if it's part of the label: */
+   }
+   label.toggle-slider { /* Target the label itself */
+       /* The ::before is on this label */
+   }
+   label.toggle-slider:has(input:checked)::before { /* If browser support :has() */
+       color: var(--accent-gold);
+   }
+   /* Fallback: just hover color for icon */
+   
+   
+   /* ==========================================================================
+      12. Footer
+      ========================================================================== */
+   footer {
+       position: relative;
+       width: 100%;
+       padding: 50px 20px 30px;
+       text-align: center;
+       font-family: var(--font-body);
+       font-size: 0.9rem;
+       color: var(--text-tertiary);
+       background: linear-gradient(to top, var(--bg-player) 0%, var(--bg-primary) 100%);
+       margin-top: 50px; /* Space above footer */
+       border-top: 1px solid var(--bg-tertiary);
+       /* GSAP: Animate this section using a class like .gsap-fade-in-up */
+       opacity: 0; transform: translateY(20px); /* For GSAP or CSS */
+   }
+   /* CSS Animation for footer */
+   @keyframes footerFadeIn { to { opacity: 1; transform: translateY(0); }}
+   footer.animate-footer { /* Add this class with JS or ScrollTrigger */
+       animation: footerFadeIn 1s 0.2s forwards ease-out;
+   }
+   
+   
+   footer p { margin-bottom: 0.8rem; }
+   
+   footer .developer {
+       font-weight: 500;
+       color: var(--accent-gold);
+       transition: text-shadow var(--transition-speed) ease;
+   }
+   footer .developer:hover {
+       text-shadow: 0 0 10px var(--accent-gold), 0 0 20px var(--accent-amber);
+   }
+   
+   .social-icons { margin-top: 1rem; }
+   .social-icons a {
+       font-size: 1.6rem !important; /* Ensure size is applied */
+       color: var(--text-tertiary);
+       margin: 0 12px;
+       transition: color var(--transition-speed) ease, transform var(--transition-speed) var(--transition-bounce);
+   }
+   .social-icons a:hover {
+       color: var(--accent-gold);
+       transform: translateY(-3px) scale(1.1);
+       text-decoration: none;
+   }
+   
+   /* Removing old animations not fitting the new theme */
+   .developer { animation: none; }
+   footer { animation: none; } /* Rely on GSAP or new .animate-footer */
+   
+   /* ==========================================================================
+      13. Utility & Misc (existing classes cleanup)
+      ========================================================================== */
+   .center { text-align: center; }
+   .margin-left-m { margin-left: 1em; }
+   .margin-right-m { margin-right: 1em; }
+   .nowrap { white-space: nowrap; /* Context dependent, may not be needed with new controls */ }
+   #indicator-display { display: none; /* Assuming not used, or style as needed */ }
+   
+   /* ==========================================================================
+      14. Responsive Styles
+      ========================================================================== */
+   @media screen and (max-width: 768px) {
+       html { font-size: 15px; }
+       #content { padding: 15px; margin-top: calc(56.25vw + 30px); }
+       @media (min-width: 800px) {#content { margin-top: calc(40vw + 30px); }} /* This is conflicting, 768px is smaller */
+       /* Correction for 768px */
+        @media (max-width: 799px) { /* Apply up to 799px */
+           #content { margin-top: calc(56.25vw + 30px); }
+       }
+   
+   
+       h2.raag { font-size: clamp(1.6rem, 3.5vw, 2.2rem); }
+       .song-link-button { font-size: clamp(1rem, 2.2vw, 1.25rem); }
+       .music-controls button { width: 45px; height: 45px; font-size: clamp(1.3rem, 3.5vw, 1.6rem); }
+       .popup-container { width: clamp(280px, 90vw, 450px); padding: clamp(15px, 3vw, 25px); }
+       #video-container.fixed-player-mode { width: clamp(220px, 35vw, 320px) !important; }
+       footer { padding: 40px 15px 20px; }
+   }
+   
+   @media screen and (max-width: 480px) {
+       html { font-size: 14px; }
+       body { padding-bottom: 90px; } /* Slightly less for smaller controls */
+       h1.header { font-size: clamp(3rem, 8vw, 5rem); }
+       #songs-container > section { padding: clamp(15px, 2.5vw, 20px); }
+       .music-controls { padding: 10px 5px; gap: clamp(5px, 2vw, 10px); }
+       .music-controls button { width: 40px; height: 40px; font-size: 1.2rem; }
+       .music-controls .toggle-slider .slider { width: 38px; height: 20px; border-radius: 10px; }
+       .music-controls .toggle-slider .slider::before { width: 16px; height: 16px; }
+       .music-controls .toggle-slider input[type="checkbox"]:checked + .slider::before { transform: translateX(18px); }
+       .music-controls .toggle-slider::before { font-size: 1rem; margin-right: 5px; }
+       .social-icons a { font-size: 1.4rem !important; margin: 0 10px; }
+       #video-container.fixed-player-mode { left: 10px; top: 10px; }
+   }
