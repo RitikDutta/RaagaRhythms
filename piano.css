@@ -10,6 +10,8 @@ body {
     font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
     margin: 0;
     color: #1f2a3a;
+    padding: 20px 16px 40px;
+    box-sizing: border-box;
 }
 
 h1 {
@@ -26,6 +28,8 @@ h1 {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     position: relative; /* Needed for positioning black keys */
     border: 3px solid #222;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .key {
@@ -137,8 +141,8 @@ h1 {
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
-  width: 80%;
-  max-width: 600px; /* Limit width */
+  width: 100%;
+  max-width: 640px; /* Limit width */
 }
 
 .sequence-player h2 {
@@ -367,6 +371,123 @@ h1 {
   margin-bottom: 10px;
   position: relative;
   animation: gridPulse 5s ease-in-out infinite;
+}
+
+@media (max-width: 900px) {
+  .piano {
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .key.white {
+    width: 52px;
+    height: 210px;
+  }
+
+  .key.black {
+    width: 34px;
+    height: 130px;
+    margin-left: -17px;
+  }
+
+  .pitch-analyzer {
+    padding: 22px 22px 20px;
+  }
+
+  #pitchCanvas {
+    height: 220px;
+  }
+}
+
+@media (max-width: 700px) {
+  h1 {
+    font-size: 26px;
+    text-align: center;
+  }
+
+  .piano {
+    padding: 16px;
+  }
+
+  .key.white {
+    width: 46px;
+    height: 190px;
+  }
+
+  .key.black {
+    width: 30px;
+    height: 118px;
+    margin-left: -15px;
+  }
+
+  .sequence-player {
+    margin-top: 32px;
+    padding: 18px;
+  }
+
+  .pitch-controls,
+  .pitch-sensitivity {
+    gap: 8px 12px;
+  }
+
+  .pitch-readout {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  #pitchCanvas {
+    height: 200px;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    padding: 16px 12px 30px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .piano {
+    padding: 12px;
+  }
+
+  .key.white {
+    width: 40px;
+    height: 170px;
+  }
+
+  .key.black {
+    width: 26px;
+    height: 105px;
+    margin-left: -13px;
+  }
+
+  .sequence-player {
+    padding: 16px;
+  }
+
+  .pitch-analyzer {
+    padding: 18px;
+  }
+
+  .pitch-controls {
+    flex-direction: column;
+  }
+
+  .pitch-sensitivity {
+    flex-direction: column;
+  }
+
+  .pitch-analyzer button {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  #pitchCanvas {
+    height: 180px;
+  }
 }
 
 @keyframes analyzerEnter {
