@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600&display=swap');
+
 body {
     display: flex;
     flex-direction: column; /* Stack title above piano */
@@ -5,7 +7,7 @@ body {
     align-items: center;
     min-height: 100vh;
     background-color: #e0e0e0; /* Slightly different bg */
-    font-family: sans-serif;
+    font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
     margin: 0;
 }
 
@@ -191,26 +193,43 @@ h1 {
 /* --- Pitch Analyzer Styles --- */
 .pitch-analyzer {
   margin-top: 30px;
-  padding: 20px;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 24px 26px;
+  background: radial-gradient(circle at top left, rgba(92, 184, 92, 0.15), transparent 55%),
+              linear-gradient(120deg, #f7f8fb, #eef3ff);
+  border-radius: 16px;
+  border: 1px solid rgba(35, 55, 80, 0.12);
+  box-shadow: 0 18px 45px rgba(35, 55, 80, 0.12);
   text-align: center;
   width: 100%;
   max-width: none;
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.pitch-analyzer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #5cb85c, #2ea8a1, #5cb85c);
+  opacity: 0.85;
 }
 
 .pitch-analyzer h2 {
   margin-top: 0;
-  margin-bottom: 15px;
-  color: #333;
+  margin-bottom: 12px;
+  color: #1f2a3a;
+  font-weight: 600;
+  letter-spacing: 0.4px;
 }
 
 .pitch-analyzer .info {
   font-size: 12px;
-  color: #777;
-  margin-top: 0;
+  color: #5b6573;
+  margin-top: 8px;
   margin-bottom: 0;
 }
 
@@ -219,8 +238,8 @@ h1 {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px 14px;
+  margin-bottom: 14px;
 }
 
 .pitch-sensitivity {
@@ -228,54 +247,61 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   font-size: 12px;
-  color: #444;
+  color: #445165;
 }
 
 .pitch-sensitivity input[type="range"] {
-  width: 180px;
+  width: 200px;
   cursor: pointer;
+  accent-color: #2ea8a1;
 }
 
 .pitch-sensitivity span {
-  font-family: monospace;
+  font-family: "JetBrains Mono", "Courier New", monospace;
   font-size: 12px;
-  background-color: #eee;
-  padding: 2px 6px;
-  border-radius: 3px;
-  color: #333;
+  background-color: #e6eef7;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #1d2b3a;
   min-width: 46px;
   text-align: right;
 }
 
 
 .pitch-analyzer button {
-  padding: 8px 18px;
-  font-size: 14px;
-  background-color: #5cb85c;
+  padding: 9px 20px;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: linear-gradient(120deg, #5cb85c, #2ea8a1);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 18px rgba(46, 168, 161, 0.25);
 }
 
 .pitch-analyzer button:hover {
-  background-color: #4cae4c;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(46, 168, 161, 0.35);
 }
 
 .pitch-analyzer button:disabled {
-  background-color: #cccccc;
+  background: #cbd6df;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .pitch-status {
   font-size: 12px;
-  color: #555;
-  background-color: #eee;
-  padding: 4px 10px;
+  color: #1d2b3a;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 5px 12px;
   border-radius: 999px;
+  border: 1px solid rgba(46, 168, 161, 0.25);
 }
 
 .pitch-readout {
@@ -284,27 +310,31 @@ h1 {
   justify-content: center;
   gap: 14px;
   margin-bottom: 10px;
-  font-family: monospace;
+  font-family: "JetBrains Mono", "Courier New", monospace;
 }
 
 .pitch-note {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
-  color: #333;
+  color: #1f2a3a;
 }
 
 .pitch-freq {
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: #556071;
 }
 
 #pitchCanvas {
   width: 100%;
   height: 260px;
   display: block;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background-color: #fff;
+  border: 1px solid rgba(35, 55, 80, 0.2);
+  border-radius: 12px;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(236, 244, 255, 0.9)),
+    repeating-linear-gradient(0deg, rgba(37, 68, 105, 0.08), rgba(37, 68, 105, 0.08) 1px, transparent 1px, transparent 26px),
+    repeating-linear-gradient(90deg, rgba(37, 68, 105, 0.05), rgba(37, 68, 105, 0.05) 1px, transparent 1px, transparent 52px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
   margin-bottom: 10px;
 }
 
