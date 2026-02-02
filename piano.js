@@ -388,8 +388,10 @@ const PITCH_HOLD_FRAMES = 3;
 const PITCH_GRAPH_SMOOTHING = 0.38;
 const PITCH_GRAPH_HOLD_FRAMES = 1;
 const PITCH_GRAPH_FRAME_SKIP = 2;
-const PITCH_AXIS_MARGIN = 52;
+const PITCH_AXIS_LEFT_MARGIN = 52;
+const PITCH_AXIS_RIGHT_MARGIN = 52;
 const PITCH_GLOW_MAX_CENTS = 50;
+const PITCH_LEFT_GLOW_CENTS = 30;
 const PITCH_PAN_MARGIN = 0.18;
 const PITCH_PAN_SMOOTHING = 0.08;
 const PITCH_EXTENDED_OCTAVES = 2;
@@ -420,8 +422,8 @@ let pitchViewMaxHz = PITCH_VIEW_DEFAULT_MAX_HZ;
 let pitchPlot = { left: 48, right: 0, top: 8, bottom: 0 };
 
 function updatePitchPlotBounds() {
-    pitchPlot.left = 8;
-    pitchPlot.right = Math.max(pitchPlot.left + 10, pitchCanvasWidth - PITCH_AXIS_MARGIN);
+    pitchPlot.left = PITCH_AXIS_LEFT_MARGIN;
+    pitchPlot.right = Math.max(pitchPlot.left + 10, pitchCanvasWidth - PITCH_AXIS_RIGHT_MARGIN);
     pitchPlot.top = 8;
     pitchPlot.bottom = Math.max(pitchPlot.top + 10, pitchCanvasHeight - 8);
 }
@@ -546,11 +548,12 @@ function drawPitchAxisLabels() {
     const ctx = pitchCanvasCtx;
     let lastLabelY = null;
     const labelX = pitchCanvasWidth - 8;
+    const leftLabelX = pitchPlot.left - 6;
     const highlightFreq = currentPitchFreq || lastGlowFreq;
     const highlight = getClosestScaleNote(highlightFreq);
+    const leftHighlight = getLeftEdgeScaleNote();
 
     ctx.font = '11px monospace';
-    ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
 
     pitchScaleNotes.forEach(note => {
@@ -561,7 +564,10 @@ function drawPitchAxisLabels() {
         const label = note.indian || note.sargam || '';
         if (!label) return;
         const isHighlight = highlight && highlight.note === note && highlight.cents <= PITCH_GLOW_MAX_CENTS;
+        const isTouched = leftHighlight && leftHighlight.note === note;
+
         ctx.save();
+        ctx.textAlign = 'right';
         if (isHighlight) {
             ctx.fillStyle = '#1f9d55';
             ctx.shadowColor = 'rgba(76, 174, 76, 0.9)';
@@ -571,6 +577,19 @@ function drawPitchAxisLabels() {
             ctx.fillStyle = label === label.toLowerCase() ? '#777' : '#555';
         }
         ctx.fillText(label, labelX, y);
+        ctx.restore();
+
+        ctx.save();
+        ctx.textAlign = 'right';
+        if (isTouched) {
+            ctx.fillStyle = '#1f9d55';
+            ctx.shadowColor = 'rgba(76, 174, 76, 0.9)';
+            ctx.shadowBlur = 10;
+            ctx.font = 'bold 12px monospace';
+        } else {
+            ctx.fillStyle = label === label.toLowerCase() ? '#777' : '#555';
+        }
+        ctx.fillText(label, leftLabelX, y);
         ctx.restore();
         lastLabelY = y;
     });
@@ -712,6 +731,21 @@ function getClosestScaleNote(freq) {
         }
     });
     return closest ? { note: closest, cents: minCents } : null;
+}
+
+function getLeftEdgeScaleNote() {
+    if (!pitchHistory.length || !pitchScaleNotes.length) return null;
+    let leftFreq = null;
+    for (let i = 0; i < pitchHistory.length; i++) {
+        if (pitchHistory[i]) {
+            leftFreq = pitchHistory[i];
+            break;
+        }
+    }
+    if (!leftFreq) return null;
+    const closest = getClosestScaleNote(leftFreq);
+    if (!closest || closest.cents > PITCH_LEFT_GLOW_CENTS) return null;
+    return closest;
 }
 
 function getNoteFromFrequency(freq) {
