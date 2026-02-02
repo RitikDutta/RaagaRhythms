@@ -340,7 +340,7 @@ h1 {
 
 #pitchCanvas {
   width: 100%;
-  height: 260px;
+  height: 494px;
   display: block;
   border: 1px solid rgba(35, 55, 80, 0.2);
   border-radius: 14px;
@@ -370,7 +370,7 @@ h1 {
   }
 
   #pitchCanvas {
-    height: 220px;
+    height: 416px;
   }
 }
 
@@ -404,7 +404,7 @@ h1 {
   }
 
   #pitchCanvas {
-    height: 200px;
+    height: 364px;
   }
 }
 
@@ -447,7 +447,7 @@ h1 {
   }
 
   #pitchCanvas {
-    height: 180px;
+    height: 325px;
   }
 }
 
