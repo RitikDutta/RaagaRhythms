@@ -411,7 +411,11 @@ function fetchSongs() {
             songsContainerEl.innerHTML = "";
         }
 
-        var raagNames = Object.keys(groupedSongs).sort((a, b) => a.localeCompare(b));
+        var raagNames = Object.keys(groupedSongs).sort(function (a, b) {
+            var countDiff = groupedSongs[b].songs.length - groupedSongs[a].songs.length;
+            if (countDiff !== 0) return countDiff;
+            return a.localeCompare(b);
+        });
 
         if (raagFilter) {
             raagFilter.innerHTML = "";
