@@ -1,5 +1,6 @@
 // Global variables
 var youTubePlayer;
+var unpinTimeoutId;
 // var vidElement = document.getElementById("YouTube-player"); // We'll target video-container for fixed mode
 
 // Initialize YouTube Player API
@@ -72,9 +73,19 @@ function toggleWidth() {
     var videoContainer = document.getElementById("video-container");
 
     if (checkbox.checked) {
+        if (unpinTimeoutId) {
+            clearTimeout(unpinTimeoutId);
+            unpinTimeoutId = null;
+        }
+        videoContainer.classList.remove('unpinning');
         videoContainer.classList.add('fixed-player-mode');
     } else {
         videoContainer.classList.remove('fixed-player-mode');
+        videoContainer.classList.add('unpinning');
+        unpinTimeoutId = setTimeout(function () {
+            videoContainer.classList.remove('unpinning');
+            unpinTimeoutId = null;
+        }, 450);
     }
 }
 
