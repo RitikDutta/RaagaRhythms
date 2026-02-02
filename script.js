@@ -509,15 +509,17 @@ function fetchSongs() {
                     return;
                 }
 
+                var listItem = target.closest("li");
+                if (!listItem) return;
+
                 if (target.classList.contains("song-link-button")) {
-                    var listItem = target.closest("li");
                     var videoId = target.dataset.videoid;
                     if (videoId) {
                         document.getElementById("YouTube-video-id").value = videoId;
                         youTubePlayerChangeVideoId();
                     }
 
-                    var moreDetails = listItem ? listItem.querySelector(".more-details") : null;
+                    var moreDetails = listItem.querySelector(".more-details");
                     if (moreDetails) {
                         var isOpenDetails = moreDetails.classList.toggle("open");
                         target.setAttribute("aria-expanded", isOpenDetails);
@@ -530,6 +532,21 @@ function fetchSongs() {
                     if (target.dataset.raag) metaParts.push("Raag " + target.dataset.raag);
                     if (target.dataset.singer) metaParts.push(target.dataset.singer);
                     updateNowPlayingDisplay(songTitle, metaParts.length ? metaParts.join(" | ") : "Playing now.");
+                    return;
+                }
+
+                if (target.closest(".time_stamp, .note_button, .link")) {
+                    return;
+                }
+
+                var cardDetails = listItem.querySelector(".more-details");
+                var cardButton = listItem.querySelector(".song-link-button");
+                if (cardDetails) {
+                    var isCardOpen = cardDetails.classList.toggle("open");
+                    if (cardButton) {
+                        cardButton.setAttribute("aria-expanded", isCardOpen);
+                    }
+                    cardDetails.setAttribute("aria-hidden", !isCardOpen);
                 }
             });
         }
