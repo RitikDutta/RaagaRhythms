@@ -17,13 +17,12 @@
       <div class="pitch-controls">
         <button id="pitchStartBtn" type="button">Start Mic</button>
         <button id="pitchStopBtn" type="button" disabled>Stop</button>
-        <label class="pitch-center-label" for="pitchCenterSelect">Center</label>
-        <select id="pitchCenterSelect">
-          <option value="S0">S0 (Low)</option>
-          <option value="S" selected>S (Middle)</option>
-          <option value="S1">S1 (High)</option>
-        </select>
         <span class="pitch-status" id="pitchStatus">Mic off.</span>
+      </div>
+      <div class="pitch-sensitivity">
+        <label for="pitchSensitivity">Sensitivity</label>
+        <input type="range" id="pitchSensitivity" min="0.5" max="1.5" step="0.05" value="0.85">
+        <span id="pitchSensitivityValue">0.85x</span>
       </div>
       <div class="pitch-readout">
         <span class="pitch-note" id="pitchNote">—</span>

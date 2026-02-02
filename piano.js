@@ -349,7 +349,8 @@ const pitchCanvas = document.getElementById('pitchCanvas');
 const pitchNoteDisplay = document.getElementById('pitchNote');
 const pitchFreqDisplay = document.getElementById('pitchFreq');
 const pitchStatus = document.getElementById('pitchStatus');
-const pitchCenterSelect = document.getElementById('pitchCenterSelect');
+const pitchSensitivitySlider = document.getElementById('pitchSensitivity');
+const pitchSensitivityValue = document.getElementById('pitchSensitivityValue');
 
 let micStream = null;
 let micSource = null;
@@ -365,6 +366,10 @@ let recentDetections = [];
 let noSignalFrames = 0;
 let currentPitchFreq = null;
 let lastGlowFreq = null;
+let graphPitchFreq = null;
+let graphNoSignalFrames = 0;
+let pitchBaseMinHz = null;
+let pitchBaseMaxHz = null;
 let pitchScaleNotes = [];
 let pitchRangeDirty = true;
 
@@ -372,17 +377,28 @@ const PITCH_VIEW_DEFAULT_MIN_HZ = 80;
 const PITCH_VIEW_DEFAULT_MAX_HZ = 1000;
 const PITCH_VIEW_ABS_MIN_HZ = 50;
 const PITCH_VIEW_ABS_MAX_HZ = 2000;
-const PITCH_FREQ_SMOOTHING = 0.12;
+const PITCH_FREQ_SMOOTHING = 0.2;
 const PITCH_HISTORY_LENGTH = 180;
 const PITCH_MIN_FREQ = 70;
 const PITCH_MAX_FREQ = 1200;
-const PITCH_MIN_RMS = 0.015;
 const PITCH_YIN_THRESHOLD = 0.12;
-const PITCH_CONFIDENCE_MIN = 0.78;
-const PITCH_STABILITY_WINDOW = 5;
-const PITCH_HOLD_FRAMES = 4;
+const PITCH_STABILITY_WINDOW = 3;
+const PITCH_HOLD_FRAMES = 3;
+const PITCH_GRAPH_SMOOTHING = 0.38;
+const PITCH_GRAPH_HOLD_FRAMES = 1;
 const PITCH_AXIS_MARGIN = 52;
 const PITCH_GLOW_MAX_CENTS = 50;
+const PITCH_PAN_MARGIN = 0.18;
+const PITCH_PAN_SMOOTHING = 0.08;
+const PITCH_EXTENDED_OCTAVES = 2;
+
+const BASE_PITCH_MIN_RMS = 0.015;
+const BASE_PITCH_CONFIDENCE_MIN = 0.72;
+const BASE_PITCH_GRAPH_CONFIDENCE_MIN = 0.6;
+
+let pitchMinRms = BASE_PITCH_MIN_RMS;
+let pitchConfidenceMin = BASE_PITCH_CONFIDENCE_MIN;
+let pitchGraphConfidenceMin = BASE_PITCH_GRAPH_CONFIDENCE_MIN;
 
 function resizePitchCanvas() {
     if (!pitchCanvas) return;
@@ -416,6 +432,13 @@ function lerp(current, target, amount) {
     return current + (target - current) * amount;
 }
 
+function applyPitchSensitivity(value) {
+    const sensitivity = clamp(value, 0.5, 1.5);
+    pitchMinRms = clamp(BASE_PITCH_MIN_RMS / sensitivity, 0.005, 0.05);
+    pitchConfidenceMin = clamp(BASE_PITCH_CONFIDENCE_MIN / sensitivity, 0.45, 0.95);
+    pitchGraphConfidenceMin = clamp(BASE_PITCH_GRAPH_CONFIDENCE_MIN / sensitivity, 0.35, 0.9);
+}
+
 function freqToY(freq) {
     const clamped = clamp(freq, pitchViewMinHz, pitchViewMaxHz);
     const minLog = Math.log10(pitchViewMinHz);
@@ -446,38 +469,74 @@ function getCenterBaseOctave(centerValue) {
     return 4;
 }
 
+function getNoteFromOffset(baseOctave, offset) {
+    const semitoneIndex = (offset % 12 + 12) % 12;
+    const octave = baseOctave + Math.floor(offset / 12);
+    const noteName = NOTE_NAMES[semitoneIndex];
+    const western = `${noteName}${octave}`;
+    const freq = getFrequency(western);
+    if (freq <= 0) return null;
+    const indian = formatSargamLabel(noteName, octave);
+    return { western, freq, indian };
+}
+
 function buildPitchScaleNotes(centerValue) {
     const baseOctave = getCenterBaseOctave(centerValue);
     const notes = [];
-    const startIndex = -3;
-    const endIndex = 11 + 3;
+    const range = PITCH_EXTENDED_OCTAVES * 12;
+    const startIndex = -range;
+    const endIndex = 11 + range;
 
     for (let i = startIndex; i <= endIndex; i++) {
-        const semitoneIndex = (i % 12 + 12) % 12;
-        const octaveOffset = Math.floor(i / 12);
-        const noteName = NOTE_NAMES[semitoneIndex];
-        const octave = baseOctave + octaveOffset;
-        const western = `${noteName}${octave}`;
-        const freq = getFrequency(western);
-        if (freq <= 0) continue;
-        const indian = formatSargamLabel(noteName, octave);
-        notes.push({ western, freq, indian });
+        const note = getNoteFromOffset(baseOctave, i);
+        if (!note) continue;
+        notes.push(note);
     }
     return notes;
 }
 
-function updatePitchViewRange() {
-    if (!pitchScaleNotes.length) {
+function setBasePitchViewRange(centerValue) {
+    const baseOctave = getCenterBaseOctave(centerValue);
+    const minNote = getNoteFromOffset(baseOctave, -3);
+    const maxNote = getNoteFromOffset(baseOctave, 11 + 3);
+    if (!minNote || !maxNote) {
         pitchViewMinHz = PITCH_VIEW_DEFAULT_MIN_HZ;
         pitchViewMaxHz = PITCH_VIEW_DEFAULT_MAX_HZ;
+        pitchBaseMinHz = pitchViewMinHz;
+        pitchBaseMaxHz = pitchViewMaxHz;
         return;
     }
 
-    const minHz = pitchScaleNotes[0].freq;
-    const maxHz = pitchScaleNotes[pitchScaleNotes.length - 1].freq;
     const padding = 0.02;
-    pitchViewMinHz = clamp(minHz * (1 - padding), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
-    pitchViewMaxHz = clamp(maxHz * (1 + padding), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+    pitchBaseMinHz = clamp(minNote.freq * (1 - padding), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+    pitchBaseMaxHz = clamp(maxNote.freq * (1 + padding), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+    pitchViewMinHz = pitchBaseMinHz;
+    pitchViewMaxHz = pitchBaseMaxHz;
+}
+
+function updatePitchViewPan(currentFreq) {
+    if (!currentFreq || !pitchViewMinHz || !pitchViewMaxHz) return;
+    const minLog = Math.log(pitchViewMinHz);
+    const maxLog = Math.log(pitchViewMaxHz);
+    const spanLog = maxLog - minLog;
+    if (spanLog <= 0) return;
+
+    const freqLog = Math.log(currentFreq);
+    const margin = spanLog * PITCH_PAN_MARGIN;
+    const lowerBound = minLog + margin;
+    const upperBound = maxLog - margin;
+
+    if (freqLog > upperBound) {
+        const targetMaxLog = freqLog + margin;
+        const targetMinLog = targetMaxLog - spanLog;
+        pitchViewMinHz = clamp(Math.exp(lerp(minLog, targetMinLog, PITCH_PAN_SMOOTHING)), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+        pitchViewMaxHz = clamp(Math.exp(lerp(maxLog, targetMaxLog, PITCH_PAN_SMOOTHING)), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+    } else if (freqLog < lowerBound) {
+        const targetMinLog = freqLog - margin;
+        const targetMaxLog = targetMinLog + spanLog;
+        pitchViewMinHz = clamp(Math.exp(lerp(minLog, targetMinLog, PITCH_PAN_SMOOTHING)), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+        pitchViewMaxHz = clamp(Math.exp(lerp(maxLog, targetMaxLog, PITCH_PAN_SMOOTHING)), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+    }
 }
 
 function drawPitchAxisLabels() {
@@ -521,13 +580,15 @@ function drawPitchGraph() {
     ctx.clearRect(0, 0, pitchCanvasWidth, pitchCanvasHeight);
 
     if (pitchRangeDirty) {
-        const centerValue = pitchCenterSelect ? pitchCenterSelect.value : 'S';
+        const centerValue = 'S';
         pitchScaleNotes = buildPitchScaleNotes(centerValue);
-        updatePitchViewRange();
+        setBasePitchViewRange(centerValue);
         pitchRangeDirty = false;
     }
 
     updatePitchPlotBounds();
+
+    updatePitchViewPan(currentPitchFreq);
 
     ctx.strokeStyle = '#eee';
     ctx.lineWidth = 1;
@@ -572,7 +633,7 @@ function detectPitchYIN(buffer, sampleRate) {
         rms += val * val;
     }
     rms = Math.sqrt(rms / size);
-    if (rms < PITCH_MIN_RMS) return { freq: -1, confidence: 0 };
+    if (rms < pitchMinRms) return { freq: -1, confidence: 0 };
 
     const minTau = Math.floor(sampleRate / PITCH_MAX_FREQ);
     const maxTau = Math.floor(sampleRate / PITCH_MIN_FREQ);
@@ -680,7 +741,8 @@ function updatePitchAnalyzer() {
     analyserNode.getFloatTimeDomainData(pitchBuffer);
     const result = detectPitchYIN(pitchBuffer, audioCtx.sampleRate);
     const freq = result.freq;
-    const detectedFreq = (freq > 0 && result.confidence >= PITCH_CONFIDENCE_MIN) ? freq : null;
+    const detectedFreq = (freq > 0 && result.confidence >= pitchConfidenceMin) ? freq : null;
+    const graphDetected = (freq > 0 && result.confidence >= pitchGraphConfidenceMin) ? freq : null;
 
     if (detectedFreq && detectedFreq >= PITCH_MIN_FREQ && detectedFreq <= PITCH_MAX_FREQ) {
         recentDetections.push(detectedFreq);
@@ -701,11 +763,21 @@ function updatePitchAnalyzer() {
         }
     }
 
+    if (graphDetected && graphDetected >= PITCH_MIN_FREQ && graphDetected <= PITCH_MAX_FREQ) {
+        graphNoSignalFrames = 0;
+        graphPitchFreq = graphPitchFreq ? lerp(graphPitchFreq, graphDetected, PITCH_GRAPH_SMOOTHING) : graphDetected;
+    } else {
+        graphNoSignalFrames += 1;
+        if (graphNoSignalFrames > PITCH_GRAPH_HOLD_FRAMES) {
+            graphPitchFreq = null;
+        }
+    }
+
     const displayFreq = smoothedPitchFreq || null;
     currentPitchFreq = displayFreq;
     if (displayFreq) { lastGlowFreq = displayFreq; }
     updatePitchUI(displayFreq || -1);
-    pitchHistory.push(displayFreq);
+    pitchHistory.push(graphPitchFreq);
     if (pitchHistory.length > PITCH_HISTORY_LENGTH) { pitchHistory.shift(); }
     drawPitchGraph();
     pitchAnimationId = requestAnimationFrame(updatePitchAnalyzer);
@@ -730,7 +802,7 @@ async function startPitchAnalyzer() {
         if (audioCtx.state === 'suspended') { await audioCtx.resume(); }
         micSource = audioCtx.createMediaStreamSource(micStream);
         analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 4096;
+        analyserNode.fftSize = 2048;
         analyserNode.smoothingTimeConstant = 0.0;
         micSource.connect(analyserNode);
         pitchBuffer = new Float32Array(analyserNode.fftSize);
@@ -741,6 +813,8 @@ async function startPitchAnalyzer() {
         noSignalFrames = 0;
         currentPitchFreq = null;
         lastGlowFreq = null;
+        graphPitchFreq = null;
+        graphNoSignalFrames = 0;
         pitchRangeDirty = true;
         resizePitchCanvas();
         updatePitchUI(-1);
@@ -769,6 +843,8 @@ function stopPitchAnalyzer() {
     noSignalFrames = 0;
     currentPitchFreq = null;
     lastGlowFreq = null;
+    graphPitchFreq = null;
+    graphNoSignalFrames = 0;
     pitchRangeDirty = true;
     drawPitchGraph();
     updatePitchUI(-1);
@@ -786,9 +862,19 @@ if (pitchStartBtn && pitchStopBtn) {
     if (pitchCanvas) { resizePitchCanvas(); }
 }
 
-if (pitchCenterSelect) {
-    pitchCenterSelect.addEventListener('change', () => {
-        pitchRangeDirty = true;
-        drawPitchGraph();
+if (pitchSensitivitySlider) {
+    const initialValue = parseFloat(pitchSensitivitySlider.value) || 1;
+    applyPitchSensitivity(initialValue);
+    if (pitchSensitivityValue) {
+        pitchSensitivityValue.textContent = `${initialValue.toFixed(2)}x`;
+    }
+    pitchSensitivitySlider.addEventListener('input', () => {
+        const value = parseFloat(pitchSensitivitySlider.value) || 1;
+        applyPitchSensitivity(value);
+        if (pitchSensitivityValue) {
+            pitchSensitivityValue.textContent = `${value.toFixed(2)}x`;
+        }
     });
+} else {
+    applyPitchSensitivity(0.85);
 }
