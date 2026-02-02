@@ -78,6 +78,83 @@ function toggleWidth() {
     }
 }
 
+function updateNowPlayingDisplay(title, meta) {
+    var titleText = title || "Select a song";
+    var metaText = meta || "Pick a track to begin listening.";
+    document.querySelectorAll('[data-now-playing="title"]').forEach(function (el) {
+        el.textContent = titleText;
+    });
+    document.querySelectorAll('[data-now-playing="meta"]').forEach(function (el) {
+        el.textContent = metaText;
+    });
+}
+
+function setActiveSong(listItem) {
+    document.querySelectorAll("#songs-container li.is-playing").forEach(function (item) {
+        item.classList.remove("is-playing");
+    });
+    if (listItem) {
+        listItem.classList.add("is-playing");
+    }
+}
+
+function slugify(value) {
+    return String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+}
+
+function applyFilters() {
+    var searchInput = document.getElementById("searchInput");
+    var raagFilter = document.getElementById("raagFilter");
+    var resultsCount = document.getElementById("resultsCount");
+    var noResults = document.getElementById("noResults");
+    var query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+    var selectedRaag = raagFilter ? raagFilter.value : "all";
+    var visibleSongs = 0;
+    var visibleRaags = 0;
+
+    document.querySelectorAll("#songs-container > section").forEach(function (section) {
+        var sectionRaag = section.dataset.raag;
+        var sectionMatches = selectedRaag === "all" || sectionRaag === selectedRaag;
+        var sectionHasVisible = false;
+
+        section.querySelectorAll("li").forEach(function (li) {
+            var haystack = li.dataset.search || "";
+            var matchesQuery = !query || haystack.indexOf(query) !== -1;
+            var shouldShow = sectionMatches && matchesQuery;
+            li.style.display = shouldShow ? "" : "none";
+            if (shouldShow) {
+                visibleSongs += 1;
+                sectionHasVisible = true;
+            }
+        });
+
+        section.style.display = sectionHasVisible ? "" : "none";
+        if (sectionHasVisible) {
+            visibleRaags += 1;
+        }
+    });
+
+    if (resultsCount) {
+        resultsCount.textContent =
+            "Showing " +
+            visibleSongs +
+            " song" +
+            (visibleSongs === 1 ? "" : "s") +
+            " across " +
+            visibleRaags +
+            " " +
+            (visibleRaags === 1 ? "raag" : "raagas") +
+            ".";
+    }
+    if (noResults) {
+        noResults.hidden = visibleSongs !== 0;
+    }
+}
+
 // Helper function to check if player is active
 function youTubePlayerActive() {
     "use strict";
@@ -269,6 +346,22 @@ function createPopup(button) {
 
 // Fetch songs from Google Sheets and display them
 function fetchSongs() {
+    var songsContainer = document.getElementById("songs-container");
+    var raagFilter = document.getElementById("raagFilter");
+    var raagNav = document.getElementById("raagNav");
+    var resultsCount = document.getElementById("resultsCount");
+    var noResults = document.getElementById("noResults");
+
+    if (songsContainer) {
+        songsContainer.innerHTML = "<div class=\"loading-state\">Loading raagas...</div>";
+    }
+    if (resultsCount) {
+        resultsCount.textContent = "Loading songs...";
+    }
+    if (noResults) {
+        noResults.hidden = true;
+    }
+
     fetch(
         "https://script.googleusercontent.com/macros/echo?user_content_key=jYy6eHbLN_GmMCajShhHQB-o5_sMPUbCRyc3dkuKHsDUYR1Wo37SOPPwVbNLMKWmBg6rwd6gLKyjeUHrH0zqkm0pvPPn_VP7m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnMJacPG11zpZatw9EbpSF0j7IcRpn3mhZxn4OerUGwP4U2DrpCIAcTSdKFvmM8JtbeNebGWtZWMQLUTLFsBtNp53pO-_vgolWQ&lib=Mh0IRVtLjs2NbijZri3x3-4bkD1ZowIV_"
     )
@@ -282,7 +375,7 @@ function fetchSongs() {
         const groupedSongs = {};
         if (data && data.songs) {
             data.songs.forEach((song) => {
-                if (!song.raag) song.raag = "Uncategorized"; // Handle songs without a raag
+                if (!song.raag) song.raag = "Uncategorized";
                 if (!groupedSongs[song.raag]) {
                     groupedSongs[song.raag] = {
                         raagDetails: song.raag_details || "No details available for this Raag.",
@@ -293,91 +386,202 @@ function fetchSongs() {
             });
         } else {
             console.error("No songs data found or data is malformed:", data);
-            document.getElementById("songs-container").innerHTML = "<p>Could not load songs at this time.</p>";
+            if (songsContainer) {
+                songsContainer.innerHTML = "<div class=\"loading-state\">Could not load songs at this time.</div>";
+            }
+            if (resultsCount) {
+                resultsCount.textContent = "Unable to load songs.";
+            }
             return;
         }
 
-        const songsContainer = document.getElementById("songs-container");
-        songsContainer.innerHTML = ""; // Clear previous content or loading indicators
+        const songsContainerEl = document.getElementById("songs-container");
+        if (songsContainerEl) {
+            songsContainerEl.innerHTML = "";
+        }
+
+        var raagNames = Object.keys(groupedSongs).sort((a, b) => a.localeCompare(b));
+
+        if (raagFilter) {
+            raagFilter.innerHTML = "";
+            var allOption = document.createElement("option");
+            allOption.value = "all";
+            allOption.textContent = "All raagas";
+            raagFilter.appendChild(allOption);
+            raagNames.forEach((raag) => {
+                var option = document.createElement("option");
+                option.value = raag;
+                option.textContent = raag;
+                raagFilter.appendChild(option);
+            });
+        }
+
+        if (raagNav) {
+            raagNav.innerHTML = "";
+            var allLink = document.createElement("a");
+            allLink.href = "#content";
+            allLink.dataset.raag = "all";
+            allLink.textContent = "All raagas";
+            raagNav.appendChild(allLink);
+
+            raagNames.forEach((raag) => {
+                var link = document.createElement("a");
+                link.href = "#raag-" + slugify(raag);
+                link.dataset.raag = raag;
+                link.textContent = "Raag " + raag;
+                raagNav.appendChild(link);
+            });
+        }
 
         let sectionIndex = 0;
-        for (const raag in groupedSongs) {
-            const songElement = document.createElement("section");
-            // Add GSAP animation class if desired, or use CSS stagger
-            // songElement.classList.add('gsap-fade-in-up');
-            songElement.style.setProperty('--section-index', sectionIndex++); // For CSS stagger
+        raagNames.forEach((raag) => {
+            var songElement = document.createElement("section");
+            var currentSectionIndex = sectionIndex++;
+            songElement.style.setProperty("--section-index", currentSectionIndex);
+            songElement.dataset.raag = raag;
+            songElement.id = "raag-" + slugify(raag);
+
+            var songs = groupedSongs[raag].songs;
 
             songElement.innerHTML = `
-                <h2 class='raag'>Raag ${raag}</h2>
-                <div class="raag-details">${replaceFormatting(groupedSongs[raag].raagDetails)}</div>
+                <h2 class=\"raag\">
+                    <button class=\"raag-toggle\" type=\"button\" aria-expanded=\"false\">Raag ${raag}</button>
+                </h2>
+                <div class=\"raag-details\" aria-hidden=\"true\">${replaceFormatting(groupedSongs[raag].raagDetails)}</div>
                 <ul>
-                    ${groupedSongs[raag].songs
-                        .map(
-                            (song, index) => `
-                            <li>
-                                <button data-videoid="${extractVideoIdFromLink(song.videoid)}" class="song-link-button">
-                                    ${song.name || "Untitled Song"}
-                                </button>
-                                <div class="song-details">
-                                    ${song.singer ? `<span class="detail-label">Singer:</span> ${song.singer}<br>` : ""}
-                                    ${song.composer ? `<span class="detail-label">Composer:</span> ${song.composer}<br>` : ""}
-                                    ${song.lyricist ? `<span class="detail-label">Lyricist:</span> ${song.lyricist}` : ""}
-                                </div>
-                                ${song.details ? `<div class="more-details">${replaceFormatting(song.details)}</div>` : ""}
-                            </li>
-                            `
-                        )
+                    ${songs
+                        .map((song, index) => {
+                            var detailId = "details-" + currentSectionIndex + "-" + index;
+                            return `
+                                <li>
+                                    <button class=\"song-link-button\" type=\"button\" ${song.details ? `aria-expanded=\"false\" aria-controls=\"${detailId}\"` : ""}>
+                                        ${song.name || "Untitled Song"}
+                                    </button>
+                                    <div class=\"song-details\">
+                                        ${song.singer ? `<span class=\"detail-label\">Singer:</span> ${song.singer}<br>` : ""}
+                                        ${song.composer ? `<span class=\"detail-label\">Composer:</span> ${song.composer}<br>` : ""}
+                                        ${song.lyricist ? `<span class=\"detail-label\">Lyricist:</span> ${song.lyricist}` : ""}
+                                    </div>
+                                    ${song.details ? `<div class=\"more-details\" id=\"${detailId}\" aria-hidden=\"true\">${replaceFormatting(song.details)}</div>` : ""}
+                                </li>
+                                `;
+                        })
                         .join("")}
                 </ul>
             `;
-            songsContainer.appendChild(songElement);
-
-            // Pre-format the initially hidden details sections if they exist
-            // Raag details are now formatted directly in the template string.
-            // If more-details exist, they are also formatted in the template string.
-        }
-
-        // Event delegation for Raag/Song details toggling and song playing
-        songsContainer.addEventListener("click", function (event) {
-            const target = event.target;
-
-            // Toggle Raag details
-            if (target.classList.contains("raag")) {
-                const raagDetails = target.nextElementSibling; // Assumes .raag-details is immediate sibling
-                if (raagDetails && raagDetails.classList.contains("raag-details")) {
-                    raagDetails.classList.toggle('open');
-                    // No need for data-formatted here as it's formatted on creation
-                }
+            if (songsContainerEl) {
+                songsContainerEl.appendChild(songElement);
             }
 
-            // Toggle Song's "more-details"
-            // Check if the click is on the song title button itself, or within its li but not on a sub-button
-            const listItem = target.closest("li");
-            if (listItem) {
-                // If a song link button is clicked
+            songElement.querySelectorAll("li").forEach((li, index) => {
+                var song = songs[index] || {};
+                var button = li.querySelector(".song-link-button");
+                if (button) {
+                    var videoId = extractVideoIdFromLink(song.videoid);
+                    if (videoId) {
+                        button.dataset.videoid = videoId;
+                    }
+                    button.dataset.raag = raag;
+                    if (song.name) button.dataset.title = song.name;
+                    if (song.singer) button.dataset.singer = song.singer;
+                    if (song.composer) button.dataset.composer = song.composer;
+                    if (song.lyricist) button.dataset.lyricist = song.lyricist;
+                }
+                li.dataset.search = [song.name, song.singer, song.composer, song.lyricist, raag]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+            });
+        });
+
+        if (songsContainerEl) {
+            songsContainerEl.addEventListener("click", function (event) {
+                var target = event.target;
+
+                if (target.classList.contains("raag-toggle")) {
+                    var section = target.closest("section");
+                    var raagDetails = section ? section.querySelector(".raag-details") : null;
+                    if (raagDetails) {
+                        var isOpen = raagDetails.classList.toggle("open");
+                        target.setAttribute("aria-expanded", isOpen);
+                        raagDetails.setAttribute("aria-hidden", !isOpen);
+                    }
+                    return;
+                }
+
                 if (target.classList.contains("song-link-button")) {
-                    const videoId = target.dataset.videoid;
+                    var listItem = target.closest("li");
+                    var videoId = target.dataset.videoid;
                     if (videoId) {
                         document.getElementById("YouTube-video-id").value = videoId;
                         youTubePlayerChangeVideoId();
                     }
-                    // Toggle "more-details" if it exists for this song
-                    const moreDetails = listItem.querySelector(".more-details");
+
+                    var moreDetails = listItem ? listItem.querySelector(".more-details") : null;
                     if (moreDetails) {
-                        // Simple toggle, or only open if not already open
-                        // For simplicity, let's make clicking the title also toggle details
-                        moreDetails.classList.toggle('open');
+                        var isOpenDetails = moreDetails.classList.toggle("open");
+                        target.setAttribute("aria-expanded", isOpenDetails);
+                        moreDetails.setAttribute("aria-hidden", !isOpenDetails);
                     }
+
+                    setActiveSong(listItem);
+                    var songTitle = target.dataset.title || target.textContent.trim();
+                    var metaParts = [];
+                    if (target.dataset.raag) metaParts.push("Raag " + target.dataset.raag);
+                    if (target.dataset.singer) metaParts.push(target.dataset.singer);
+                    updateNowPlayingDisplay(songTitle, metaParts.length ? metaParts.join(" | ") : "Playing now.");
                 }
-                // If a click is inside an <li> but not on a sub-button (like timestamp, etc.)
-                // you might want to toggle its .more-details if that's the desired UX.
-                // Current setup: title click handles video + toggles its own details.
-            }
-        });
+            });
+        }
+
+        if (raagNav && raagFilter) {
+            raagNav.addEventListener("click", function (event) {
+                var link = event.target.closest("a");
+                if (!link) return;
+                var raagValue = link.dataset.raag;
+                if (raagValue) {
+                    raagFilter.value = raagValue;
+                    applyFilters();
+                }
+            });
+        }
+
+        var searchInput = document.getElementById("searchInput");
+        var clearFilters = document.getElementById("clearFilters");
+
+        if (searchInput) {
+            searchInput.addEventListener("input", applyFilters);
+            searchInput.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    searchInput.value = "";
+                    applyFilters();
+                }
+            });
+        }
+
+        if (raagFilter) {
+            raagFilter.addEventListener("change", applyFilters);
+        }
+
+        if (clearFilters) {
+            clearFilters.addEventListener("click", function () {
+                if (searchInput) searchInput.value = "";
+                if (raagFilter) raagFilter.value = "all";
+                applyFilters();
+                if (searchInput) searchInput.focus();
+            });
+        }
+
+        applyFilters();
     })
     .catch((error) => {
         console.error("Error fetching songs:", error);
-        document.getElementById("songs-container").innerHTML = `<p style="color: var(--accent-amber); text-align: center;">Failed to load musical entries. Please check your connection or try again later.</p>`;
+        if (songsContainer) {
+            songsContainer.innerHTML = "<div class=\"loading-state\">Failed to load musical entries. Please check your connection or try again later.</div>";
+        }
+        if (resultsCount) {
+            resultsCount.textContent = "Unable to load songs.";
+        }
     });
 }
 
@@ -424,17 +628,50 @@ function playNotes(input, delay = 300) {
 
 // DOMContentLoaded - Primary execution after HTML is parsed
 document.addEventListener('DOMContentLoaded', function() {
+    var scrollButton = document.getElementById("scrollToSongs");
+    if (scrollButton) {
+        scrollButton.addEventListener("click", function () {
+            var target = document.getElementById("songs-wrapper");
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth" });
+            }
+        });
+    }
+
+    updateNowPlayingDisplay();
+
     // GSAP Animations (ensure GSAP and ScrollTrigger are loaded in HTML)
     if (typeof gsap !== 'undefined') {
         gsap.registerPlugin(ScrollTrigger);
 
-        // Header Animation
-        gsap.from("h1.header", {
-            duration: 1,
-            y: 50,
+        // Hero Animation
+        gsap.from(".hero-copy > *", {
+            duration: 0.8,
+            y: 30,
             opacity: 0,
             ease: "power2.out",
-            delay: 0.2
+            stagger: 0.08
+        });
+
+        gsap.from(".hero-player", {
+            duration: 0.9,
+            y: 40,
+            opacity: 0,
+            ease: "power2.out",
+            delay: 0.1,
+            clearProps: "transform"
+        });
+
+        gsap.from(".controls-panel", {
+            duration: 0.8,
+            y: 30,
+            opacity: 0,
+            ease: "power2.out",
+            scrollTrigger: {
+                trigger: ".controls-panel",
+                start: "top 85%",
+                toggleActions: "play none none none",
+            }
         });
 
         // Raag Sections Staggered Animation
@@ -462,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ease: "power1.out",
             scrollTrigger: {
                 trigger: "footer",
-                start: "top 95%", // Trigger when 95% of footer is visible from top
+                start: "top 90%",
                 toggleActions: "play none none none",
             }
         });
