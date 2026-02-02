@@ -12,10 +12,31 @@
         <!-- Piano keys will be generated here by JavaScript -->
     </div>
 
+    <div class="pitch-analyzer">
+      <h2>Voice Pitch Analyzer</h2>
+      <div class="pitch-controls">
+        <button id="pitchStartBtn" type="button">Start Mic</button>
+        <button id="pitchStopBtn" type="button" disabled>Stop</button>
+        <label class="pitch-center-label" for="pitchCenterSelect">Center</label>
+        <select id="pitchCenterSelect">
+          <option value="S0">S0 (Low)</option>
+          <option value="S" selected>S (Middle)</option>
+          <option value="S1">S1 (High)</option>
+        </select>
+        <span class="pitch-status" id="pitchStatus">Mic off.</span>
+      </div>
+      <div class="pitch-readout">
+        <span class="pitch-note" id="pitchNote">—</span>
+        <span class="pitch-freq" id="pitchFreq">0 Hz</span>
+      </div>
+      <canvas id="pitchCanvas" width="520" height="260" aria-label="Live pitch graph"></canvas>
+      <p class="info">Sing or hum a steady note to see it tracked in real time.</p>
+    </div>
+
     <div class="sequence-player">
       <h2>Play Sequence</h2>
-      <label for="sargamInput">Enter Sargam Notes (e.g., S R G m, P D N S1):</label>
-      <input type="text" id="sargamInput" placeholder="S R g m, P D n S1...">
+      <label for="sargamInput">Enter Sargam Notes (e.g., S R G M, r g m d n, P D N S1):</label>
+      <input type="text" id="sargamInput" placeholder="S R G M, r g m d n, P D N S1...">
 
       <div class="controls-row"> <!-- Optional: Group controls -->
           <!-- Speed Slider Section -->
@@ -56,7 +77,7 @@
   
       <button id="playSequenceBtn">Play</button>
       <p class="info">Use spaces between notes. Use ',' for a short pause.</p>
-      <p class="info">(Notes: S R G m P D N, Komal: r g d n, Tivra: M. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend/Glide: S-G, P--S1)</p>
+      <p class="info">(Notes: S R G M P D N, Komal: r g d n, Tivra: m. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend/Glide: S-G, P--S1)</p>
     </div>
 
   <script src="piano.js" defer></script>

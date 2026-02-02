@@ -5,8 +5,8 @@ const NOTES = [
     "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5"
 ];
 const SARGAM_BASE = {
-    "C": "S", "C#": "r", "D": "R", "D#": "g", "E": "G", "F": "m",
-    "F#": "M", "G": "P", "G#": "d", "A": "D", "A#": "n", "B": "N"
+    "C": "S", "C#": "r", "D": "R", "D#": "g", "E": "G", "F": "M",
+    "F#": "m", "G": "P", "G#": "d", "A": "D", "A#": "n", "B": "N"
 };
 function getSargamNotation(note) { /* ... no change ... */
     if (!note || note.length < 2) return { indian: '', western: note };
@@ -22,8 +22,7 @@ function createWesternNoteMap() { /* ... no change ... */
         const { indian: sargamWithOctave } = getSargamNotation(westernNote); let baseSargam = null;
         if(westernNote.endsWith('4')) { const noteName = westernNote.slice(0, -1); baseSargam = SARGAM_BASE[noteName] || null; }
         if (sargamWithOctave && !WESTERN_NOTE_MAP[sargamWithOctave]) { WESTERN_NOTE_MAP[sargamWithOctave] = westernNote; }
-        const lowerSargamWithOctave = sargamWithOctave.toLowerCase(); if (lowerSargamWithOctave && !WESTERN_NOTE_MAP[lowerSargamWithOctave]) { WESTERN_NOTE_MAP[lowerSargamWithOctave] = westernNote; }
-        if (baseSargam) { if (!WESTERN_NOTE_MAP[baseSargam]) { WESTERN_NOTE_MAP[baseSargam] = westernNote; } const lowerBaseSargam = baseSargam.toLowerCase(); if (lowerBaseSargam && !WESTERN_NOTE_MAP[lowerBaseSargam]) { WESTERN_NOTE_MAP[lowerBaseSargam] = westernNote; } }
+        if (baseSargam && !WESTERN_NOTE_MAP[baseSargam]) { WESTERN_NOTE_MAP[baseSargam] = westernNote; }
     });
 }
 createWesternNoteMap();
@@ -248,7 +247,7 @@ function playSequence() {
             // console.log(`    Pause: Duration=${currentEventDuration.toFixed(3)}`); // DEBUG
         } else if (token.type === 'note') {
             const sargamNote = token.value; const noteCount = token.count; const hasGamak = token.hasGamak;
-            const westernNote = WESTERN_NOTE_MAP[sargamNote] || WESTERN_NOTE_MAP[sargamNote.toLowerCase()];
+            const westernNote = WESTERN_NOTE_MAP[sargamNote];
             if (westernNote) {
                 const frequency = getFrequency(westernNote);
                 if (frequency > 0) {
@@ -259,8 +258,8 @@ function playSequence() {
             } else { currentEventDuration = (SEQUENCE_NOTE_DURATION * noteCount) / speedFactor; /* skip */ console.warn(`    Note '${sargamNote}': Unknown, skipping.`); }
         } else if (token.type === 'meend') {
             const startSargam = token.startNote; const endSargam = token.endNote; const meendMultiplier = token.count;
-            const startWestern = WESTERN_NOTE_MAP[startSargam] || WESTERN_NOTE_MAP[startSargam.toLowerCase()];
-            const endWestern = WESTERN_NOTE_MAP[endSargam] || WESTERN_NOTE_MAP[endSargam.toLowerCase()];
+            const startWestern = WESTERN_NOTE_MAP[startSargam];
+            const endWestern = WESTERN_NOTE_MAP[endSargam];
             if (startWestern && endWestern) {
                 const startFreq = getFrequency(startWestern); const endFreq = getFrequency(endWestern);
                 if (startFreq > 0 && endFreq > 0) {
@@ -340,5 +339,456 @@ if (reverbSlider && reverbValueDisplay) { /* ... no change ... */
 // --- Update Info Text for Sequence Player ---
 const infoParagraphs = document.querySelectorAll('.sequence-player .info');
 if (infoParagraphs.length > 1) { /* ... no change ... */
-    infoParagraphs[1].innerHTML = `(Notes: S R G m P D N, Komal: r g d n, Tivra: M. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend: S-G. Quick: _R. Gamak: G~, RR~R)`;
+    infoParagraphs[1].innerHTML = `(Notes: S R G M P D N, Komal: r g d n, Tivra: m. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend: S-G. Quick: _R. Gamak: G~, RR~R)`;
+}
+
+// --- Voice Pitch Analyzer ---
+const pitchStartBtn = document.getElementById('pitchStartBtn');
+const pitchStopBtn = document.getElementById('pitchStopBtn');
+const pitchCanvas = document.getElementById('pitchCanvas');
+const pitchNoteDisplay = document.getElementById('pitchNote');
+const pitchFreqDisplay = document.getElementById('pitchFreq');
+const pitchStatus = document.getElementById('pitchStatus');
+const pitchCenterSelect = document.getElementById('pitchCenterSelect');
+
+let micStream = null;
+let micSource = null;
+let analyserNode = null;
+let pitchBuffer = null;
+let pitchAnimationId = null;
+let pitchHistory = [];
+let pitchCanvasCtx = null;
+let pitchCanvasWidth = 0;
+let pitchCanvasHeight = 0;
+let smoothedPitchFreq = null;
+let recentDetections = [];
+let noSignalFrames = 0;
+let currentPitchFreq = null;
+let lastGlowFreq = null;
+let pitchScaleNotes = [];
+let pitchRangeDirty = true;
+
+const PITCH_VIEW_DEFAULT_MIN_HZ = 80;
+const PITCH_VIEW_DEFAULT_MAX_HZ = 1000;
+const PITCH_VIEW_ABS_MIN_HZ = 50;
+const PITCH_VIEW_ABS_MAX_HZ = 2000;
+const PITCH_FREQ_SMOOTHING = 0.12;
+const PITCH_HISTORY_LENGTH = 180;
+const PITCH_MIN_FREQ = 70;
+const PITCH_MAX_FREQ = 1200;
+const PITCH_MIN_RMS = 0.015;
+const PITCH_YIN_THRESHOLD = 0.12;
+const PITCH_CONFIDENCE_MIN = 0.78;
+const PITCH_STABILITY_WINDOW = 5;
+const PITCH_HOLD_FRAMES = 4;
+const PITCH_AXIS_MARGIN = 52;
+const PITCH_GLOW_MAX_CENTS = 50;
+
+function resizePitchCanvas() {
+    if (!pitchCanvas) return;
+    const rect = pitchCanvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    pitchCanvasWidth = Math.max(1, Math.floor(rect.width));
+    pitchCanvasHeight = Math.max(1, Math.floor(rect.height));
+    pitchCanvas.width = Math.max(1, Math.floor(pitchCanvasWidth * dpr));
+    pitchCanvas.height = Math.max(1, Math.floor(pitchCanvasHeight * dpr));
+    if (!pitchCanvasCtx) { pitchCanvasCtx = pitchCanvas.getContext('2d'); }
+    if (pitchCanvasCtx) { pitchCanvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+    drawPitchGraph();
+}
+
+let pitchViewMinHz = PITCH_VIEW_DEFAULT_MIN_HZ;
+let pitchViewMaxHz = PITCH_VIEW_DEFAULT_MAX_HZ;
+let pitchPlot = { left: 48, right: 0, top: 8, bottom: 0 };
+
+function updatePitchPlotBounds() {
+    pitchPlot.left = 8;
+    pitchPlot.right = Math.max(pitchPlot.left + 10, pitchCanvasWidth - PITCH_AXIS_MARGIN);
+    pitchPlot.top = 8;
+    pitchPlot.bottom = Math.max(pitchPlot.top + 10, pitchCanvasHeight - 8);
+}
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function lerp(current, target, amount) {
+    return current + (target - current) * amount;
+}
+
+function freqToY(freq) {
+    const clamped = clamp(freq, pitchViewMinHz, pitchViewMaxHz);
+    const minLog = Math.log10(pitchViewMinHz);
+    const maxLog = Math.log10(pitchViewMaxHz);
+    const value = (Math.log10(clamped) - minLog) / (maxLog - minLog);
+    return pitchPlot.bottom - (value * (pitchPlot.bottom - pitchPlot.top));
+}
+
+function getFrequencyForNote(noteName, octave) {
+    const noteIndex = NOTE_NAMES.indexOf(noteName);
+    if (noteIndex === -1) return 0;
+    const semitonesFromA4 = (octave - 4) * 12 + (noteIndex - 9);
+    return A4_FREQUENCY * Math.pow(2, semitonesFromA4 / 12);
+}
+
+function formatSargamLabel(noteName, octave) {
+    const base = SARGAM_BASE[noteName] || '';
+    if (!base) return '';
+    const diff = octave - 4;
+    if (diff === 0) return base;
+    if (diff > 0) return `${base}${diff}`;
+    return `${base}${'0'.repeat(Math.abs(diff))}`;
+}
+
+function getCenterBaseOctave(centerValue) {
+    if (centerValue === 'S0') return 3;
+    if (centerValue === 'S1') return 5;
+    return 4;
+}
+
+function buildPitchScaleNotes(centerValue) {
+    const baseOctave = getCenterBaseOctave(centerValue);
+    const notes = [];
+    const startIndex = -3;
+    const endIndex = 11 + 3;
+
+    for (let i = startIndex; i <= endIndex; i++) {
+        const semitoneIndex = (i % 12 + 12) % 12;
+        const octaveOffset = Math.floor(i / 12);
+        const noteName = NOTE_NAMES[semitoneIndex];
+        const octave = baseOctave + octaveOffset;
+        const western = `${noteName}${octave}`;
+        const freq = getFrequency(western);
+        if (freq <= 0) continue;
+        const indian = formatSargamLabel(noteName, octave);
+        notes.push({ western, freq, indian });
+    }
+    return notes;
+}
+
+function updatePitchViewRange() {
+    if (!pitchScaleNotes.length) {
+        pitchViewMinHz = PITCH_VIEW_DEFAULT_MIN_HZ;
+        pitchViewMaxHz = PITCH_VIEW_DEFAULT_MAX_HZ;
+        return;
+    }
+
+    const minHz = pitchScaleNotes[0].freq;
+    const maxHz = pitchScaleNotes[pitchScaleNotes.length - 1].freq;
+    const padding = 0.02;
+    pitchViewMinHz = clamp(minHz * (1 - padding), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+    pitchViewMaxHz = clamp(maxHz * (1 + padding), PITCH_VIEW_ABS_MIN_HZ, PITCH_VIEW_ABS_MAX_HZ);
+}
+
+function drawPitchAxisLabels() {
+    if (!pitchCanvasCtx) return;
+    const ctx = pitchCanvasCtx;
+    let lastLabelY = null;
+    const labelX = pitchCanvasWidth - 8;
+    const highlightFreq = currentPitchFreq || lastGlowFreq;
+    const highlight = getClosestScaleNote(highlightFreq);
+
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    pitchScaleNotes.forEach(note => {
+        if (!note || !note.freq) return;
+        const y = freqToY(note.freq);
+        if (y < pitchPlot.top - 6 || y > pitchPlot.bottom + 6) return;
+        if (lastLabelY !== null && Math.abs(lastLabelY - y) < 8) return;
+        const label = note.indian || note.sargam || '';
+        if (!label) return;
+        const isHighlight = highlight && highlight.note === note && highlight.cents <= PITCH_GLOW_MAX_CENTS;
+        ctx.save();
+        if (isHighlight) {
+            ctx.fillStyle = '#1f9d55';
+            ctx.shadowColor = 'rgba(76, 174, 76, 0.9)';
+            ctx.shadowBlur = 10;
+            ctx.font = 'bold 12px monospace';
+        } else {
+            ctx.fillStyle = label === label.toLowerCase() ? '#777' : '#555';
+        }
+        ctx.fillText(label, labelX, y);
+        ctx.restore();
+        lastLabelY = y;
+    });
+}
+
+function drawPitchGraph() {
+    if (!pitchCanvasCtx) return;
+    const ctx = pitchCanvasCtx;
+    ctx.clearRect(0, 0, pitchCanvasWidth, pitchCanvasHeight);
+
+    if (pitchRangeDirty) {
+        const centerValue = pitchCenterSelect ? pitchCenterSelect.value : 'S';
+        pitchScaleNotes = buildPitchScaleNotes(centerValue);
+        updatePitchViewRange();
+        pitchRangeDirty = false;
+    }
+
+    updatePitchPlotBounds();
+
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+        const y = pitchPlot.top + ((pitchPlot.bottom - pitchPlot.top) / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(pitchPlot.left, y);
+        ctx.lineTo(pitchPlot.right, y);
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#ddd';
+    ctx.beginPath();
+    ctx.moveTo(pitchPlot.right, pitchPlot.top);
+    ctx.lineTo(pitchPlot.right, pitchPlot.bottom);
+    ctx.stroke();
+
+    drawPitchAxisLabels();
+
+    if (!pitchHistory.length) return;
+    const plotWidth = pitchPlot.right - pitchPlot.left;
+    const step = pitchHistory.length > 1 ? plotWidth / (pitchHistory.length - 1) : plotWidth;
+    ctx.strokeStyle = '#4cae4c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    let started = false;
+    pitchHistory.forEach((freq, index) => {
+        if (!freq) { started = false; return; }
+        const x = pitchPlot.left + index * step;
+        const y = freqToY(freq);
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else { ctx.lineTo(x, y); }
+    });
+    ctx.stroke();
+}
+
+function detectPitchYIN(buffer, sampleRate) {
+    const size = buffer.length;
+    let rms = 0;
+    for (let i = 0; i < size; i++) {
+        const val = buffer[i];
+        rms += val * val;
+    }
+    rms = Math.sqrt(rms / size);
+    if (rms < PITCH_MIN_RMS) return { freq: -1, confidence: 0 };
+
+    const minTau = Math.floor(sampleRate / PITCH_MAX_FREQ);
+    const maxTau = Math.floor(sampleRate / PITCH_MIN_FREQ);
+    if (maxTau <= minTau || maxTau >= size) return { freq: -1, confidence: 0 };
+
+    const yinBuffer = new Float32Array(maxTau + 1);
+    for (let tau = minTau; tau <= maxTau; tau++) {
+        let sum = 0;
+        for (let i = 0; i < size - tau; i++) {
+            const diff = buffer[i] - buffer[i + tau];
+            sum += diff * diff;
+        }
+        yinBuffer[tau] = sum;
+    }
+
+    let runningSum = 0;
+    yinBuffer[0] = 1;
+    for (let tau = 1; tau <= maxTau; tau++) {
+        runningSum += yinBuffer[tau];
+        yinBuffer[tau] = runningSum ? (yinBuffer[tau] * tau) / runningSum : 1;
+    }
+
+    let tauEstimate = -1;
+    for (let tau = minTau; tau <= maxTau; tau++) {
+        if (yinBuffer[tau] < PITCH_YIN_THRESHOLD) {
+            while (tau + 1 <= maxTau && yinBuffer[tau + 1] < yinBuffer[tau]) { tau++; }
+            tauEstimate = tau;
+            break;
+        }
+    }
+
+    if (tauEstimate === -1) {
+        let minVal = Infinity;
+        let minIndex = -1;
+        for (let tau = minTau; tau <= maxTau; tau++) {
+            if (yinBuffer[tau] < minVal) { minVal = yinBuffer[tau]; minIndex = tau; }
+        }
+        tauEstimate = minIndex;
+    }
+
+    if (tauEstimate <= 0) return { freq: -1, confidence: 0 };
+
+    let betterTau = tauEstimate;
+    if (tauEstimate > 1 && tauEstimate < maxTau) {
+        const s0 = yinBuffer[tauEstimate - 1];
+        const s1 = yinBuffer[tauEstimate];
+        const s2 = yinBuffer[tauEstimate + 1];
+        const denom = (2 * s1 - s2 - s0);
+        if (denom) { betterTau = tauEstimate + (s2 - s0) / (2 * denom); }
+    }
+
+    const freq = sampleRate / betterTau;
+    const confidence = 1 - yinBuffer[tauEstimate];
+    return { freq, confidence };
+}
+
+function median(values) {
+    if (!values.length) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function getClosestScaleNote(freq) {
+    if (!freq || !pitchScaleNotes.length) return null;
+    let closest = null;
+    let minCents = Infinity;
+    pitchScaleNotes.forEach(note => {
+        if (!note || !note.freq) return;
+        const cents = Math.abs(1200 * Math.log2(freq / note.freq));
+        if (cents < minCents) {
+            minCents = cents;
+            closest = note;
+        }
+    });
+    return closest ? { note: closest, cents: minCents } : null;
+}
+
+function getNoteFromFrequency(freq) {
+    const midi = Math.round(69 + 12 * Math.log2(freq / A4_FREQUENCY));
+    const noteName = NOTE_NAMES[(midi % 12 + 12) % 12];
+    const octave = Math.floor(midi / 12) - 1;
+    const western = `${noteName}${octave}`;
+    const { indian } = getSargamNotation(western);
+    const label = indian ? `${indian} (${western})` : western;
+    return { western, indian, label };
+}
+
+function updatePitchUI(freq) {
+    if (!pitchNoteDisplay || !pitchFreqDisplay || !pitchStatus) return;
+    if (freq > 0) {
+        const noteInfo = getNoteFromFrequency(freq);
+        pitchNoteDisplay.textContent = noteInfo.label;
+        pitchFreqDisplay.textContent = `${freq.toFixed(1)} Hz`;
+        pitchStatus.textContent = 'Mic on.';
+    } else {
+        pitchNoteDisplay.textContent = '—';
+        pitchFreqDisplay.textContent = '0 Hz';
+        pitchStatus.textContent = 'Mic on. No pitch detected.';
+    }
+}
+
+function updatePitchAnalyzer() {
+    if (!analyserNode || !pitchBuffer) return;
+    analyserNode.getFloatTimeDomainData(pitchBuffer);
+    const result = detectPitchYIN(pitchBuffer, audioCtx.sampleRate);
+    const freq = result.freq;
+    const detectedFreq = (freq > 0 && result.confidence >= PITCH_CONFIDENCE_MIN) ? freq : null;
+
+    if (detectedFreq && detectedFreq >= PITCH_MIN_FREQ && detectedFreq <= PITCH_MAX_FREQ) {
+        recentDetections.push(detectedFreq);
+        if (recentDetections.length > PITCH_STABILITY_WINDOW) { recentDetections.shift(); }
+    } else if (recentDetections.length) {
+        recentDetections.shift();
+    }
+
+    const stableFreq = median(recentDetections);
+
+    if (stableFreq) {
+        noSignalFrames = 0;
+        smoothedPitchFreq = smoothedPitchFreq ? lerp(smoothedPitchFreq, stableFreq, PITCH_FREQ_SMOOTHING) : stableFreq;
+    } else {
+        noSignalFrames += 1;
+        if (noSignalFrames > PITCH_HOLD_FRAMES) {
+            smoothedPitchFreq = null;
+        }
+    }
+
+    const displayFreq = smoothedPitchFreq || null;
+    currentPitchFreq = displayFreq;
+    if (displayFreq) { lastGlowFreq = displayFreq; }
+    updatePitchUI(displayFreq || -1);
+    pitchHistory.push(displayFreq);
+    if (pitchHistory.length > PITCH_HISTORY_LENGTH) { pitchHistory.shift(); }
+    drawPitchGraph();
+    pitchAnimationId = requestAnimationFrame(updatePitchAnalyzer);
+}
+
+async function startPitchAnalyzer() {
+    if (!pitchStartBtn || !pitchStopBtn) return;
+    if (!window.isSecureContext) {
+        if (pitchStatus) { pitchStatus.textContent = 'Mic requires HTTPS or localhost.'; }
+        return;
+    }
+    if (!initAudioContext() || !audioCtx) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (pitchStatus) { pitchStatus.textContent = 'Mic not supported in this browser.'; }
+        return;
+    }
+    try {
+        if (micStream) { stopPitchAnalyzer(); }
+        micStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        });
+        if (audioCtx.state === 'suspended') { await audioCtx.resume(); }
+        micSource = audioCtx.createMediaStreamSource(micStream);
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 4096;
+        analyserNode.smoothingTimeConstant = 0.0;
+        micSource.connect(analyserNode);
+        pitchBuffer = new Float32Array(analyserNode.fftSize);
+
+        pitchHistory = [];
+        smoothedPitchFreq = null;
+        recentDetections = [];
+        noSignalFrames = 0;
+        currentPitchFreq = null;
+        lastGlowFreq = null;
+        pitchRangeDirty = true;
+        resizePitchCanvas();
+        updatePitchUI(-1);
+        pitchStatus.textContent = 'Mic on.';
+        pitchStartBtn.disabled = true;
+        pitchStopBtn.disabled = false;
+        updatePitchAnalyzer();
+    } catch (error) {
+        console.error('Mic access error:', error);
+        if (pitchStatus) {
+            const message = error && error.name ? `Mic error: ${error.name}.` : 'Mic permission denied or unavailable.';
+            pitchStatus.textContent = message;
+        }
+    }
+}
+
+function stopPitchAnalyzer() {
+    if (pitchAnimationId) { cancelAnimationFrame(pitchAnimationId); pitchAnimationId = null; }
+    if (micStream) { micStream.getTracks().forEach(track => track.stop()); micStream = null; }
+    if (micSource) { micSource.disconnect(); micSource = null; }
+    if (analyserNode) { analyserNode.disconnect(); analyserNode = null; }
+    pitchBuffer = null;
+    pitchHistory = [];
+    smoothedPitchFreq = null;
+    recentDetections = [];
+    noSignalFrames = 0;
+    currentPitchFreq = null;
+    lastGlowFreq = null;
+    pitchRangeDirty = true;
+    drawPitchGraph();
+    updatePitchUI(-1);
+    if (pitchStatus) { pitchStatus.textContent = 'Mic off.'; }
+    if (pitchStartBtn) { pitchStartBtn.disabled = false; }
+    if (pitchStopBtn) { pitchStopBtn.disabled = true; }
+}
+
+if (pitchStartBtn && pitchStopBtn) {
+    pitchStartBtn.addEventListener('click', startPitchAnalyzer);
+    pitchStopBtn.addEventListener('click', stopPitchAnalyzer);
+    window.addEventListener('resize', () => {
+        if (pitchCanvas && pitchCanvas.getBoundingClientRect().width > 0) { resizePitchCanvas(); }
+    });
+    if (pitchCanvas) { resizePitchCanvas(); }
+}
+
+if (pitchCenterSelect) {
+    pitchCenterSelect.addEventListener('change', () => {
+        pitchRangeDirty = true;
+        drawPitchGraph();
+    });
 }
