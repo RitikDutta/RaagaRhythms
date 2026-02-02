@@ -368,6 +368,7 @@ let currentPitchFreq = null;
 let lastGlowFreq = null;
 let graphPitchFreq = null;
 let graphNoSignalFrames = 0;
+let graphFrameCounter = 0;
 let pitchBaseMinHz = null;
 let pitchBaseMaxHz = null;
 let pitchScaleNotes = [];
@@ -386,6 +387,7 @@ const PITCH_STABILITY_WINDOW = 3;
 const PITCH_HOLD_FRAMES = 3;
 const PITCH_GRAPH_SMOOTHING = 0.38;
 const PITCH_GRAPH_HOLD_FRAMES = 1;
+const PITCH_GRAPH_FRAME_SKIP = 2;
 const PITCH_AXIS_MARGIN = 52;
 const PITCH_GLOW_MAX_CENTS = 50;
 const PITCH_PAN_MARGIN = 0.18;
@@ -777,6 +779,12 @@ function updatePitchAnalyzer() {
     currentPitchFreq = displayFreq;
     if (displayFreq) { lastGlowFreq = displayFreq; }
     updatePitchUI(displayFreq || -1);
+    graphFrameCounter += 1;
+    if (graphFrameCounter % PITCH_GRAPH_FRAME_SKIP !== 0) {
+        pitchAnimationId = requestAnimationFrame(updatePitchAnalyzer);
+        return;
+    }
+
     pitchHistory.push(graphPitchFreq);
     if (pitchHistory.length > PITCH_HISTORY_LENGTH) { pitchHistory.shift(); }
     drawPitchGraph();
@@ -815,6 +823,7 @@ async function startPitchAnalyzer() {
         lastGlowFreq = null;
         graphPitchFreq = null;
         graphNoSignalFrames = 0;
+        graphFrameCounter = 0;
         pitchRangeDirty = true;
         resizePitchCanvas();
         updatePitchUI(-1);
@@ -845,6 +854,7 @@ function stopPitchAnalyzer() {
     lastGlowFreq = null;
     graphPitchFreq = null;
     graphNoSignalFrames = 0;
+    graphFrameCounter = 0;
     pitchRangeDirty = true;
     drawPitchGraph();
     updatePitchUI(-1);
