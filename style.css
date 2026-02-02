@@ -996,6 +996,14 @@ footer .developer {
     .raag-nav a {
         flex: 0 0 auto;
     }
+
+    #video-container.fixed-player-mode {
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0;
+    }
 }
 
 @media (max-width: 600px) {
@@ -1004,9 +1012,11 @@ footer .developer {
     }
 
     #video-container.fixed-player-mode {
-        top: 12px;
-        left: 12px;
-        width: clamp(200px, 55vw, 300px);
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0;
     }
 
     .hero-actions {
