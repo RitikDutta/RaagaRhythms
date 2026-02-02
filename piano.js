@@ -1,8 +1,8 @@
 // --- Configuration ---
 const NOTES = [
+    "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
     "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
-    "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
-    "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5"
+    "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4"
 ];
 const SARGAM_BASE = {
     "C": "S", "C#": "r", "D": "R", "D#": "g", "E": "G", "F": "M",
@@ -12,7 +12,9 @@ function getSargamNotation(note) { /* ... no change ... */
     if (!note || note.length < 2) return { indian: '', western: note };
     const noteName = note.slice(0, -1); const octave = parseInt(note.slice(-1));
     const sargamBase = SARGAM_BASE[noteName] || '?'; let indianNote = sargamBase;
-    if (octave === 3) indianNote += '0'; else if (octave === 5) indianNote += '1';
+    const octaveOffset = octave - 3;
+    if (octaveOffset > 0) { indianNote += String(octaveOffset); }
+    else if (octaveOffset < 0) { indianNote += '0'.repeat(Math.abs(octaveOffset)); }
     return { indian: indianNote, western: note };
 }
 let WESTERN_NOTE_MAP = {};
@@ -20,7 +22,7 @@ function createWesternNoteMap() { /* ... no change ... */
     WESTERN_NOTE_MAP = {};
     NOTES.forEach(westernNote => {
         const { indian: sargamWithOctave } = getSargamNotation(westernNote); let baseSargam = null;
-        if(westernNote.endsWith('4')) { const noteName = westernNote.slice(0, -1); baseSargam = SARGAM_BASE[noteName] || null; }
+        if(westernNote.endsWith('3')) { const noteName = westernNote.slice(0, -1); baseSargam = SARGAM_BASE[noteName] || null; }
         if (sargamWithOctave && !WESTERN_NOTE_MAP[sargamWithOctave]) { WESTERN_NOTE_MAP[sargamWithOctave] = westernNote; }
         if (baseSargam && !WESTERN_NOTE_MAP[baseSargam]) { WESTERN_NOTE_MAP[baseSargam] = westernNote; }
     });
@@ -291,6 +293,9 @@ if (pianoContainer) { /* ... no change ... */
     NOTES.forEach(note => {
         const keyElement = document.createElement('div'); const isBlackKey = note.includes('#'); const notations = getSargamNotation(note);
         keyElement.classList.add('key'); keyElement.classList.add(isBlackKey ? 'black' : 'white'); keyElement.dataset.note = note;
+        if (isBlackKey) {
+            keyElement.style.left = `calc(var(--piano-padding) + (var(--white-key-step) * ${whiteKeyIndex}))`;
+        }
         const indianLabel = document.createElement('span'); indianLabel.classList.add('indian-note'); indianLabel.textContent = notations.indian; keyElement.appendChild(indianLabel);
         const westernLabel = document.createElement('span'); westernLabel.classList.add('western-note'); westernLabel.textContent = notations.western; keyElement.appendChild(westernLabel);
         const handlePress = (e) => { e.preventDefault(); startNote(note); keyElement.classList.add('active'); };
@@ -394,7 +399,11 @@ const PITCH_GLOW_MAX_CENTS = 50;
 const PITCH_LEFT_GLOW_CENTS = 30;
 const PITCH_PAN_MARGIN = 0.18;
 const PITCH_PAN_SMOOTHING = 0.08;
-const PITCH_EXTENDED_OCTAVES = 2;
+const PITCH_SCALE_NOTE_MIN_OFFSET = -12;
+const PITCH_SCALE_NOTE_MAX_OFFSET = 23;
+const PITCH_VIEW_NOTE_COUNT = 10;
+const PITCH_VIEW_NOTE_MIN_OFFSET = -Math.floor((PITCH_VIEW_NOTE_COUNT - 1) / 2);
+const PITCH_VIEW_NOTE_MAX_OFFSET = PITCH_VIEW_NOTE_MIN_OFFSET + PITCH_VIEW_NOTE_COUNT - 1;
 
 const BASE_PITCH_MIN_RMS = 0.015;
 const BASE_PITCH_CONFIDENCE_MIN = 0.72;
@@ -461,16 +470,16 @@ function getFrequencyForNote(noteName, octave) {
 function formatSargamLabel(noteName, octave) {
     const base = SARGAM_BASE[noteName] || '';
     if (!base) return '';
-    const diff = octave - 4;
+    const diff = octave - 3;
     if (diff === 0) return base;
     if (diff > 0) return `${base}${diff}`;
     return `${base}${'0'.repeat(Math.abs(diff))}`;
 }
 
 function getCenterBaseOctave(centerValue) {
-    if (centerValue === 'S0') return 3;
-    if (centerValue === 'S1') return 5;
-    return 4;
+    if (centerValue === 'S0') return 2;
+    if (centerValue === 'S1') return 4;
+    return 3;
 }
 
 function getNoteFromOffset(baseOctave, offset) {
@@ -487,9 +496,8 @@ function getNoteFromOffset(baseOctave, offset) {
 function buildPitchScaleNotes(centerValue) {
     const baseOctave = getCenterBaseOctave(centerValue);
     const notes = [];
-    const range = PITCH_EXTENDED_OCTAVES * 12;
-    const startIndex = -range;
-    const endIndex = 11 + range;
+    const startIndex = PITCH_SCALE_NOTE_MIN_OFFSET;
+    const endIndex = PITCH_SCALE_NOTE_MAX_OFFSET;
 
     for (let i = startIndex; i <= endIndex; i++) {
         const note = getNoteFromOffset(baseOctave, i);
@@ -501,8 +509,8 @@ function buildPitchScaleNotes(centerValue) {
 
 function setBasePitchViewRange(centerValue) {
     const baseOctave = getCenterBaseOctave(centerValue);
-    const minNote = getNoteFromOffset(baseOctave, -3);
-    const maxNote = getNoteFromOffset(baseOctave, 11 + 3);
+    const minNote = getNoteFromOffset(baseOctave, PITCH_VIEW_NOTE_MIN_OFFSET);
+    const maxNote = getNoteFromOffset(baseOctave, PITCH_VIEW_NOTE_MAX_OFFSET);
     if (!minNote || !maxNote) {
         pitchViewMinHz = PITCH_VIEW_DEFAULT_MIN_HZ;
         pitchViewMaxHz = PITCH_VIEW_DEFAULT_MAX_HZ;

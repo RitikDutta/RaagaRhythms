@@ -77,32 +77,6 @@ h1 {
     color: #fff; /* Text color for black keys */
 }
 
-/* --- Positioning for Black Keys --- */
-/* Base offset = piano padding-left - half black key width */
-/* Left position = (white_key_index * white_key_width) + base_offset */
-
-/* Octave 3 */
-.key[data-note="C#3"] { left: calc(var(--white-key-step) * 1 + var(--piano-padding)); }
-.key[data-note="D#3"] { left: calc(var(--white-key-step) * 2 + var(--piano-padding)); }
-.key[data-note="F#3"] { left: calc(var(--white-key-step) * 4 + var(--piano-padding)); }
-.key[data-note="G#3"] { left: calc(var(--white-key-step) * 5 + var(--piano-padding)); }
-.key[data-note="A#3"] { left: calc(var(--white-key-step) * 6 + var(--piano-padding)); }
-
-/* Octave 4 */
-.key[data-note="C#4"] { left: calc(var(--white-key-step) * 8 + var(--piano-padding)); } /* C4 is the 8th white key */
-.key[data-note="D#4"] { left: calc(var(--white-key-step) * 9 + var(--piano-padding)); }
-.key[data-note="F#4"] { left: calc(var(--white-key-step) * 11 + var(--piano-padding)); }
-.key[data-note="G#4"] { left: calc(var(--white-key-step) * 12 + var(--piano-padding)); }
-.key[data-note="A#4"] { left: calc(var(--white-key-step) * 13 + var(--piano-padding)); }
-
-/* Octave 5 */
-.key[data-note="C#5"] { left: calc(var(--white-key-step) * 15 + var(--piano-padding)); } /* C5 is the 15th white key */
-.key[data-note="D#5"] { left: calc(var(--white-key-step) * 16 + var(--piano-padding)); }
-.key[data-note="F#5"] { left: calc(var(--white-key-step) * 18 + var(--piano-padding)); }
-.key[data-note="G#5"] { left: calc(var(--white-key-step) * 19 + var(--piano-padding)); }
-.key[data-note="A#5"] { left: calc(var(--white-key-step) * 20 + var(--piano-padding)); }
-/* Add more if extending the range further */
-
 
 /* Style when a key is pressed */
 .key.active {
