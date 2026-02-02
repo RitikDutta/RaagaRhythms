@@ -6,14 +6,16 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #e0e0e0; /* Slightly different bg */
+    background: radial-gradient(circle at top, #f6f8ff 0%, #eef2f9 45%, #e1e8f3 100%);
     font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
     margin: 0;
+    color: #1f2a3a;
 }
 
 h1 {
-    color: #333;
+    color: #1f2a3a;
     margin-bottom: 30px;
+    letter-spacing: 1px;
 }
 
 .piano {
@@ -193,18 +195,21 @@ h1 {
 /* --- Pitch Analyzer Styles --- */
 .pitch-analyzer {
   margin-top: 30px;
-  padding: 24px 26px;
-  background: radial-gradient(circle at top left, rgba(92, 184, 92, 0.15), transparent 55%),
-              linear-gradient(120deg, #f7f8fb, #eef3ff);
-  border-radius: 16px;
+  padding: 26px 30px 24px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(92, 184, 92, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(46, 168, 161, 0.18), transparent 42%),
+    linear-gradient(130deg, #f9fbff, #eef3ff 60%, #e9f6f3);
+  border-radius: 20px;
   border: 1px solid rgba(35, 55, 80, 0.12);
-  box-shadow: 0 18px 45px rgba(35, 55, 80, 0.12);
+  box-shadow: 0 24px 60px rgba(35, 55, 80, 0.12);
   text-align: center;
   width: 100%;
   max-width: none;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
+  animation: analyzerEnter 0.6s ease-out;
 }
 
 .pitch-analyzer::before {
@@ -215,15 +220,28 @@ h1 {
   right: 0;
   height: 6px;
   background: linear-gradient(90deg, #5cb85c, #2ea8a1, #5cb85c);
-  opacity: 0.85;
+  opacity: 0.9;
+}
+
+.pitch-analyzer::after {
+  content: "";
+  position: absolute;
+  right: -120px;
+  bottom: -120px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(46, 168, 161, 0.22), transparent 70%);
+  opacity: 0.7;
 }
 
 .pitch-analyzer h2 {
   margin-top: 0;
   margin-bottom: 12px;
-  color: #1f2a3a;
+  color: #162233;
   font-weight: 600;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: 18px;
 }
 
 .pitch-analyzer .info {
@@ -238,8 +256,8 @@ h1 {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px 14px;
-  margin-bottom: 14px;
+  gap: 10px 16px;
+  margin-bottom: 16px;
 }
 
 .pitch-sensitivity {
@@ -247,9 +265,9 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   font-size: 12px;
-  color: #445165;
+  color: #3c4b5d;
 }
 
 .pitch-sensitivity input[type="range"] {
@@ -280,13 +298,18 @@ h1 {
   border: none;
   border-radius: 999px;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
   box-shadow: 0 8px 18px rgba(46, 168, 161, 0.25);
 }
 
 .pitch-analyzer button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 20px rgba(46, 168, 161, 0.35);
+}
+
+.pitch-analyzer button:focus-visible {
+  outline: 2px solid rgba(46, 168, 161, 0.6);
+  outline-offset: 2px;
 }
 
 .pitch-analyzer button:disabled {
@@ -302,6 +325,7 @@ h1 {
   padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid rgba(46, 168, 161, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .pitch-readout {
@@ -309,19 +333,23 @@ h1 {
   align-items: baseline;
   justify-content: center;
   gap: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-family: "JetBrains Mono", "Courier New", monospace;
 }
 
 .pitch-note {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: bold;
   color: #1f2a3a;
+  letter-spacing: 0.6px;
 }
 
 .pitch-freq {
-  font-size: 13px;
+  font-size: 12px;
   color: #556071;
+  background-color: rgba(255, 255, 255, 0.6);
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
 #pitchCanvas {
@@ -329,13 +357,36 @@ h1 {
   height: 260px;
   display: block;
   border: 1px solid rgba(35, 55, 80, 0.2);
-  border-radius: 12px;
+  border-radius: 14px;
   background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(236, 244, 255, 0.9)),
-    repeating-linear-gradient(0deg, rgba(37, 68, 105, 0.08), rgba(37, 68, 105, 0.08) 1px, transparent 1px, transparent 26px),
-    repeating-linear-gradient(90deg, rgba(37, 68, 105, 0.05), rgba(37, 68, 105, 0.05) 1px, transparent 1px, transparent 52px);
+    radial-gradient(circle at 12% 20%, rgba(92, 184, 92, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(232, 241, 255, 0.9)),
+    repeating-linear-gradient(0deg, rgba(37, 68, 105, 0.1), rgba(37, 68, 105, 0.1) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, rgba(37, 68, 105, 0.08), rgba(37, 68, 105, 0.08) 1px, transparent 1px, transparent 48px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
   margin-bottom: 10px;
+  position: relative;
+  animation: gridPulse 5s ease-in-out infinite;
+}
+
+@keyframes analyzerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.05);
+  }
 }
 
 /* --- Speed Control Styles --- */
