@@ -12,24 +12,57 @@
         <!-- Piano keys will be generated here by JavaScript -->
     </div>
 
-    <div class="pitch-analyzer">
-      <h2>Voice Pitch Analyzer</h2>
-      <div class="pitch-controls">
-        <button id="pitchStartBtn" type="button">Start Mic</button>
-        <button id="pitchStopBtn" type="button" disabled>Stop</button>
-        <span class="pitch-status" id="pitchStatus">Mic off.</span>
+    <div class="pitch-analyzer" id="crepeAnalyzer">
+      <div class="pitch-header">
+        <div>
+          <h2>Voice Pitch Analyzer</h2>
+          <p class="pitch-subtitle">CREPE neural model · real-time microphone pitch tracking</p>
+        </div>
+        <div class="pitch-controls">
+          <button id="pitchStartBtn" type="button">Start Mic</button>
+          <button id="pitchStopBtn" type="button" disabled>Stop</button>
+          <span class="pitch-status" id="pitchStatus">Idle.</span>
+        </div>
       </div>
-      <div class="pitch-sensitivity">
-        <label for="pitchSensitivity">Sensitivity</label>
-        <input type="range" id="pitchSensitivity" min="0.5" max="1.5" step="0.05" value="0.85">
-        <span id="pitchSensitivityValue">0.85x</span>
+
+      <div class="pitch-metrics">
+        <div class="pitch-card">
+          <span class="metric-label">Estimated Pitch</span>
+          <span class="metric-value" id="pitch-note">--</span>
+          <span class="metric-sub" id="pitch-hz">-- Hz</span>
+          <span class="metric-sub" id="pitch-cents">No voice</span>
+        </div>
+        <div class="pitch-card">
+          <span class="metric-label">Voicing Confidence</span>
+          <span class="metric-value" id="voicing-confidence">0.000</span>
+          <div class="meter"><div id="confidence-fill"></div></div>
+          <span class="metric-sub">Threshold: 0.50</span>
+        </div>
+        <div class="pitch-card">
+          <span class="metric-label">Sample Rate</span>
+          <span class="metric-value"><span data-srate>--</span> Hz</span>
+          <span class="metric-sub">Audio input</span>
+        </div>
       </div>
-      <div class="pitch-readout">
-        <span class="pitch-note" id="pitchNote">—</span>
-        <span class="pitch-freq" id="pitchFreq">0 Hz</span>
+
+      <div class="pitch-panels">
+        <div class="pitch-panel">
+          <div class="pitch-panel-header">
+            <h3>Pitch Track</h3>
+            <span>History (left = older)</span>
+          </div>
+          <canvas id="pitch-graph" width="960" height="260" aria-label="Pitch track graph"></canvas>
+        </div>
+        <div class="pitch-panel">
+          <div class="pitch-panel-header">
+            <h3>Activation Map</h3>
+            <span>CREPE output bins</span>
+          </div>
+          <canvas id="activation" width="960" height="360" aria-label="CREPE activation map"></canvas>
+        </div>
       </div>
-      <canvas id="pitchCanvas" width="520" height="494" aria-label="Live pitch graph"></canvas>
-      <p class="info">Sing or hum a steady note to see it tracked in real time.</p>
+
+      <p class="info">Tip: Use a quiet room and sustain a single note for best tracking.</p>
     </div>
 
     <div class="sequence-player">
@@ -79,6 +112,7 @@
       <p class="info">(Notes: S R G M P D N, Komal: r g d n, Tivra: m. Octaves: 0 lower, 1 higher. e.g., S0, P, m1. Repeats: SSS. Meend/Glide: S-G, P--S1)</p>
     </div>
 
+  <script src="crepe/tfjs-0.8.0.min.js" defer></script>
   <script src="piano.js" defer></script>
 </body>
 </html>

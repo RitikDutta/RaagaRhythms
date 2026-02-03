@@ -1,0 +1,447 @@
+<!doctype html> 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CREPE Pitch Analyzer (ml5.js)</title>
+
+  <!-- ml5 (includes TensorFlow.js internally for this feature) -->
+  <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue";
+      background: #0b0f17;
+      color: #e7ecff;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      width: min(820px, calc(100vw - 32px));
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 18px; font-weight: 650; }
+    p { margin: 0 0 14px; opacity: .85; line-height: 1.4; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: #e7ecff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      font-size: 12px;
+      opacity: .9;
+    }
+
+    .big {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .metric {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      padding: 14px;
+      min-height: 88px;
+    }
+    .label { font-size: 12px; opacity: .75; margin-bottom: 6px; }
+    .value { font-size: 28px; font-weight: 750; letter-spacing: .2px; }
+    .sub { font-size: 12px; opacity: .7; margin-top: 6px; }
+
+    canvas {
+      margin-top: 14px;
+      width: 100%;
+      height: 180px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.25);
+      display: block;
+    }
+
+    .footer { margin-top: 10px; font-size: 12px; opacity: .7; line-height: 1.4; }
+    code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 6px; }
+    @media (max-width: 640px){
+      .big { grid-template-columns: 1fr; }
+      canvas { height: 160px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>CREPE Pitch Analyzer (Browser, mic → CREPE → Hz/Note/Cents)</h1>
+    <p>
+      Click <b>Start</b>, allow microphone access, then sing or play a single note.
+      This uses <code>ml5.pitchDetection</code> with the CREPE model.
+    </p>
+
+    <div class="row">
+      <button id="startBtn">Start</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <span class="pill" id="statusPill">Idle</span>
+      <span class="pill">Model: CREPE (ml5)</span>
+    </div>
+
+    <div class="big">
+      <div class="metric">
+        <div class="label">Frequency</div>
+        <div class="value" id="hzValue">—</div>
+        <div class="sub">Hz (smoothed)</div>
+      </div>
+      <div class="metric">
+        <div class="label">Note</div>
+        <div class="value" id="noteValue">—</div>
+        <div class="sub">Closest equal-temperament note</div>
+      </div>
+      <div class="metric">
+        <div class="label">Deviation</div>
+        <div class="value" id="centsValue">—</div>
+        <div class="sub">Cents sharp (+) / flat (−)</div>
+      </div>
+    </div>
+
+    <canvas id="history" width="1200" height="360"></canvas>
+
+    <div class="footer">
+      Tips: Use a quiet room. This is monophonic pitch (one note at a time). If values jump, increase smoothing.
+    </div>
+  </div>
+
+  <script>
+    // CREPE model URL used by ml5 pitchDetection examples
+    const MODEL_URL =
+      "https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/";
+
+    // UI
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn  = document.getElementById("stopBtn");
+    const statusPill = document.getElementById("statusPill");
+    const hzValue = document.getElementById("hzValue");
+    const noteValue = document.getElementById("noteValue");
+    const centsValue = document.getElementById("centsValue");
+
+    // Canvas graph state
+    const canvas = document.getElementById("history");
+    const ctx = canvas.getContext("2d");
+    const HISTORY_SECONDS = 15;        // how much time to display
+    const SAMPLE_INTERVAL_MS = 20;    // CREPE polling rate (50 Hz)
+    const MAX_POINTS = Math.floor((HISTORY_SECONDS * 1000) / SAMPLE_INTERVAL_MS);
+    const historyHz = [];
+
+    // Audio / model state
+    let audioContext = null;
+    let micStream = null;
+    let micTrack = null;
+    let pitchDetector = null;
+    let running = false;
+    let rafId = null;
+    let lastValidHz = null;
+    let lastPitchAt = 0;
+    const recentHz = [];
+
+    // Smoothing & stability filters
+    let emaHz = null;
+    const EMA_ALPHA = 0.4;            // higher = more responsive, lower = smoother
+    const MEDIAN_WINDOW = 5;          // small median filter to reject spikes
+    const MAX_JUMP_CENTS = 250;       // ignore single-frame jumps larger than this
+    const HOLD_MS = 200;              // hold last valid pitch for brief dropouts
+
+    function setStatus(text) {
+      statusPill.textContent = text;
+    }
+
+    function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+    // Convert Hz -> MIDI note number
+    function hzToMidi(hz) {
+      return 69 + 12 * Math.log2(hz / 440);
+    }
+
+    // Convert MIDI note -> note name
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    function midiToNoteName(midi) {
+      const m = Math.round(midi);
+      const name = NOTE_NAMES[(m % 12 + 12) % 12];
+      const octave = Math.floor(m / 12) - 1;
+      return `${name}${octave}`;
+    }
+
+    // Cents difference between actual Hz and nearest equal-temperament note
+    function hzToCents(hz) {
+      const midi = hzToMidi(hz);
+      const nearest = Math.round(midi);
+      return Math.round((midi - nearest) * 100); // cents
+    }
+    function centsBetween(a, b) {
+      return 1200 * Math.log2(b / a);
+    }
+    function median(arr) {
+      const s = arr.slice().sort((a, b) => a - b);
+      const mid = Math.floor(s.length / 2);
+      return (s.length % 2) ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    }
+
+    // Draw pitch history (Hz) as a line
+    function drawGraph() {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Background grid
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1;
+
+      // Horizontal grid lines
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      for (let i = 1; i <= 4; i++) {
+        const y = (h * i) / 5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // If no data, show placeholder
+      if (historyHz.length === 0) {
+        ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.font = "24px system-ui";
+        ctx.fillText("Pitch history", 22, 54);
+        ctx.font = "16px system-ui";
+        ctx.fillText("Start and make sound to see the graph.", 22, 82);
+        return;
+      }
+
+      // Determine Y scale: use recent min/max, with sensible bounds
+      const valid = historyHz.filter(v => v && v > 0);
+      let minHz = 80, maxHz = 1000;
+      if (valid.length > 3) {
+        const vmin = Math.min(...valid);
+        const vmax = Math.max(...valid);
+        // expand a bit so the line doesn't touch edges
+        minHz = clamp(vmin * 0.85, 50, 2000);
+        maxHz = clamp(vmax * 1.15, 80, 4000);
+        if (maxHz - minHz < 80) maxHz = minHz + 80;
+      }
+
+      // Axis labels
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "18px system-ui";
+      ctx.fillText(`${Math.round(maxHz)} Hz`, 16, 28);
+      ctx.fillText(`${Math.round(minHz)} Hz`, 16, h - 16);
+
+      // Plot line
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+
+      const points = [];
+      const n = historyHz.length;
+      for (let i = 0; i < n; i++) {
+        const hz = historyHz[i];
+        const x = (i / (MAX_POINTS - 1)) * (w - 1);
+        if (!hz || hz <= 0) continue;
+        const t = (hz - minHz) / (maxHz - minHz);
+        const y = (1 - clamp(t, 0, 1)) * (h - 1);
+        points.push({ x, y });
+      }
+
+      if (points.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        if (points.length === 1) {
+          ctx.lineTo(points[0].x + 0.1, points[0].y);
+        } else {
+          for (let i = 1; i < points.length - 1; i++) {
+            const xc = (points[i].x + points[i + 1].x) / 2;
+            const yc = (points[i].y + points[i + 1].y) / 2;
+            ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+          }
+          const last = points[points.length - 1];
+          ctx.lineTo(last.x, last.y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function pushHistory(hz) {
+      historyHz.push(hz || 0);
+      while (historyHz.length > MAX_POINTS) historyHz.shift();
+    }
+
+    async function start() {
+      if (running) return;
+      setStatus("Requesting mic…");
+
+      try {
+        // Ask for mic
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 1
+          }
+        });
+
+        // Create AudioContext (must be in a user gesture)
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({
+          latencyHint: "interactive"
+        });
+        await audioContext.resume();
+
+        // Keep a reference to stop the mic later
+        micTrack = micStream.getAudioTracks()[0];
+
+        setStatus("Loading model…");
+
+        // Create CREPE pitch detector
+        pitchDetector = ml5.pitchDetection(MODEL_URL, audioContext, micStream, () => {
+          setStatus("Running");
+          running = true;
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+
+          emaHz = null;
+          lastValidHz = null;
+          lastPitchAt = 0;
+          recentHz.length = 0;
+          historyHz.length = 0;
+          tick();
+        });
+      } catch (e) {
+        console.error(e);
+        const msg = (e && e.message) ? e.message : String(e);
+        setStatus(`Error: ${msg}`);
+        cleanup();
+      }
+    }
+
+    function tick() {
+      if (!running || !pitchDetector) return;
+
+      pitchDetector.getPitch((err, frequency) => {
+        if (err) {
+          console.error(err);
+          pushHistory(0);
+          drawGraph();
+          scheduleNext();
+          return;
+        }
+
+        const now = performance.now();
+
+        if (frequency && isFinite(frequency)) {
+          // Reject large single-frame jumps
+          if (lastValidHz && Math.abs(centsBetween(lastValidHz, frequency)) > MAX_JUMP_CENTS) {
+            frequency = null;
+          }
+        }
+
+        if (frequency && isFinite(frequency)) {
+          recentHz.push(frequency);
+          while (recentHz.length > MEDIAN_WINDOW) recentHz.shift();
+          const med = median(recentHz);
+
+          // Smooth
+          emaHz = (emaHz == null) ? med : (EMA_ALPHA * med + (1 - EMA_ALPHA) * emaHz);
+          lastValidHz = emaHz;
+          lastPitchAt = now;
+
+          // UI
+          hzValue.textContent = `${emaHz.toFixed(2)}`;
+          const midi = hzToMidi(emaHz);
+          noteValue.textContent = midiToNoteName(midi);
+
+          const cents = hzToCents(emaHz);
+          centsValue.textContent = (cents > 0 ? `+${cents}` : `${cents}`);
+
+          pushHistory(emaHz);
+        } else {
+          const canHold = lastValidHz && (now - lastPitchAt) <= HOLD_MS;
+          if (canHold) {
+            // Hold briefly for continuity
+            pushHistory(lastValidHz);
+          } else {
+            // No pitch detected
+            hzValue.textContent = "—";
+            noteValue.textContent = "—";
+            centsValue.textContent = "—";
+            pushHistory(0);
+          }
+        }
+
+        drawGraph();
+        scheduleNext();
+      });
+    }
+
+    function scheduleNext() {
+      if (!running) return;
+      // Using setTimeout gives stable polling rate
+      setTimeout(() => {
+        // also draw at display refresh if you prefer
+        tick();
+      }, SAMPLE_INTERVAL_MS);
+    }
+
+    function stop() {
+      running = false;
+      setStatus("Stopped");
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      cleanup();
+
+      // keep last graph on screen, but freeze values
+    }
+
+    function cleanup() {
+      try { if (rafId) cancelAnimationFrame(rafId); } catch {}
+      rafId = null;
+
+      try { if (micTrack) micTrack.stop(); } catch {}
+      micTrack = null;
+
+      try { if (micStream) micStream.getTracks().forEach(t => t.stop()); } catch {}
+      micStream = null;
+
+      try { if (audioContext) audioContext.close(); } catch {}
+      audioContext = null;
+
+      pitchDetector = null;
+    }
+
+    // Initial draw
+    drawGraph();
+
+    startBtn.addEventListener("click", start);
+    stopBtn.addEventListener("click", stop);
+
+    // Safety: stop on tab close
+    window.addEventListener("beforeunload", () => {
+      try { stop(); } catch {}
+    });
+  </script>
+</body>
+</html>
