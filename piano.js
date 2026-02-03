@@ -390,15 +390,21 @@ function hzToMidi(hz) {
 }
 
 const CREPE_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+function formatAnalyzerSargam(noteName, octave) {
+    const western = `${noteName}${octave}`;
+    const { indian } = getSargamNotation(western);
+    return indian || western;
+}
 
 function hzToNote(hz) {
     const midi = hzToMidi(hz);
     const rounded = Math.round(midi);
     const name = CREPE_NOTE_NAMES[((rounded % 12) + 12) % 12];
     const octave = Math.floor(rounded / 12) - 1;
+    const label = formatAnalyzerSargam(name, octave);
     const cents = Math.round((midi - rounded) * 100);
     return {
-        label: `${name}${octave}`,
+        label,
         cents,
         midi
     };
@@ -509,27 +515,96 @@ const updatePitchGraph = (() => {
         return noop;
     }
 
+    const midiToSargamLabel = (midi) => {
+        const rounded = Math.round(midi);
+        const name = CREPE_NOTE_NAMES[((rounded % 12) + 12) % 12];
+        const octave = Math.floor(rounded / 12) - 1;
+        return formatAnalyzerSargam(name, octave);
+    };
+
     const ctx = pitchGraphCanvas.getContext('2d');
     const width = pitchGraphCanvas.width;
     const height = pitchGraphCanvas.height;
     const history = new Array(width).fill(null);
     let writeIndex = 0;
 
-    const minMidi = 36;
-    const maxMidi = 96;
-    const gridLabels = [
-        { midi: 36, label: 'C2' },
-        { midi: 48, label: 'C3' },
-        { midi: 60, label: 'C4' },
-        { midi: 72, label: 'C5' },
-        { midi: 84, label: 'C6' },
-        { midi: 96, label: 'C7' }
-    ];
+    const VIEW_WINDOW_COLS = Math.min(240, width);
+    const VIEW_PADDING_SEMITONES = 2;
+    const VIEW_SMOOTH = 0.18;
+    const MIN_VIEW_RANGE_SEMITONES = 8;
+    const MAX_VIEW_RANGE_SEMITONES = 18;
+    const ABS_MIN_MIDI = 24;
+    const ABS_MAX_MIDI = 96;
+    let viewMinMidi = 52;
+    let viewMaxMidi = 66;
+
+    function updateViewRange() {
+        const windowPoints = Math.min(history.length, VIEW_WINDOW_COLS);
+        const recent = [];
+        for (let i = 0; i < windowPoints; i++) {
+            const idx = (writeIndex - 1 - i + width) % width;
+            const midi = history[idx];
+            if (midi === null || isNaN(midi)) continue;
+            recent.push(midi);
+        }
+        if (recent.length < 2) return;
+
+        let vmin = Math.min(...recent);
+        let vmax = Math.max(...recent);
+        if (!isFinite(vmin) || !isFinite(vmax)) return;
+
+        const span = Math.max(0.5, vmax - vmin);
+        const padded = span + VIEW_PADDING_SEMITONES * 2;
+        const range = clamp(padded, MIN_VIEW_RANGE_SEMITONES, MAX_VIEW_RANGE_SEMITONES);
+
+        let center = (vmin + vmax) / 2;
+        const lastIndex = (writeIndex - 1 + width) % width;
+        const lastMidi = history[lastIndex];
+        if (lastMidi !== null && !isNaN(lastMidi)) {
+            const edge = Math.min(2, range * 0.2);
+            const minEdge = center - range / 2 + edge;
+            const maxEdge = center + range / 2 - edge;
+            if (lastMidi < minEdge) center = lastMidi + (range / 2 - edge);
+            if (lastMidi > maxEdge) center = lastMidi - (range / 2 - edge);
+        }
+
+        let targetMin = center - range / 2;
+        let targetMax = center + range / 2;
+        if (targetMin < ABS_MIN_MIDI) {
+            targetMin = ABS_MIN_MIDI;
+            targetMax = ABS_MIN_MIDI + range;
+        }
+        if (targetMax > ABS_MAX_MIDI) {
+            targetMax = ABS_MAX_MIDI;
+            targetMin = ABS_MAX_MIDI - range;
+        }
+
+        viewMinMidi += (targetMin - viewMinMidi) * VIEW_SMOOTH;
+        viewMaxMidi += (targetMax - viewMaxMidi) * VIEW_SMOOTH;
+
+        if (viewMaxMidi - viewMinMidi < 1) {
+            const mid = (viewMinMidi + viewMaxMidi) / 2;
+            viewMinMidi = mid - 0.5;
+            viewMaxMidi = mid + 0.5;
+        }
+    }
 
     function midiToY(midi) {
-        const clamped = clamp(midi, minMidi, maxMidi);
-        const t = (clamped - minMidi) / (maxMidi - minMidi);
+        const span = Math.max(1, viewMaxMidi - viewMinMidi);
+        const clamped = clamp(midi, viewMinMidi, viewMaxMidi);
+        const t = (clamped - viewMinMidi) / span;
         return height - t * height;
+    }
+
+    function buildGridLabels() {
+        const range = viewMaxMidi - viewMinMidi;
+        const step = range > 12 ? 2 : 1;
+        const start = Math.ceil(viewMinMidi / step) * step;
+        const labels = [];
+        for (let midi = start; midi <= viewMaxMidi + 0.001; midi += step) {
+            labels.push({ midi, label: midiToSargamLabel(midi) });
+        }
+        return labels;
     }
 
     function drawGrid() {
@@ -547,6 +622,7 @@ const updatePitchGraph = (() => {
             ctx.stroke();
         }
 
+        const gridLabels = buildGridLabels();
         gridLabels.forEach((row) => {
             const y = midiToY(row.midi);
             ctx.beginPath();
@@ -585,6 +661,7 @@ const updatePitchGraph = (() => {
         }
         history[writeIndex] = midi;
         writeIndex = (writeIndex + 1) % width;
+        updateViewRange();
 
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
@@ -621,6 +698,8 @@ const updatePitchGraph = (() => {
     render.reset = () => {
         history.fill(null);
         writeIndex = 0;
+        viewMinMidi = 52;
+        viewMaxMidi = 66;
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.fillRect(0, 0, width, height);

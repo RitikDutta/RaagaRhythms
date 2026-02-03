@@ -147,6 +147,15 @@
     const SAMPLE_INTERVAL_MS = 20;    // CREPE polling rate (50 Hz)
     const MAX_POINTS = Math.floor((HISTORY_SECONDS * 1000) / SAMPLE_INTERVAL_MS);
     const historyHz = [];
+    const VIEW_WINDOW_SEC = 2.5;          // recent window for auto-zoom
+    const VIEW_PADDING_SEMITONES = 2;     // headroom above/below recent range
+    const VIEW_SMOOTH = 0.18;             // 0..1, higher = faster zoom/pan
+    const MIN_VIEW_RANGE_SEMITONES = 8;   // show fewer notes (min span)
+    const MAX_VIEW_RANGE_SEMITONES = 18;  // cap the visible notes (max span)
+    const ABS_MIN_HZ = 50;
+    const ABS_MAX_HZ = 4000;
+    let viewMinHz = 110;
+    let viewMaxHz = 880;
 
     // Audio / model state
     let audioContext = null;
@@ -176,6 +185,9 @@
     function hzToMidi(hz) {
       return 69 + 12 * Math.log2(hz / 440);
     }
+    function midiToHz(midi) {
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
 
     // Convert MIDI note -> note name
     const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -199,6 +211,59 @@
       const s = arr.slice().sort((a, b) => a - b);
       const mid = Math.floor(s.length / 2);
       return (s.length % 2) ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    }
+
+    function updateViewRange() {
+      const windowPoints = Math.min(
+        historyHz.length,
+        Math.floor((VIEW_WINDOW_SEC * 1000) / SAMPLE_INTERVAL_MS)
+      );
+      if (windowPoints < 2) return;
+      const start = Math.max(0, historyHz.length - windowPoints);
+      const recent = historyHz.slice(start).filter(v => v && v > 0);
+      if (recent.length < 2) return;
+
+      const recentMidi = recent.map(hzToMidi);
+      let vmin = Math.min(...recentMidi);
+      let vmax = Math.max(...recentMidi);
+      if (!isFinite(vmin) || !isFinite(vmax)) return;
+
+      const span = Math.max(0.5, vmax - vmin);
+      const paddedSpan = span + VIEW_PADDING_SEMITONES * 2;
+      const range = clamp(paddedSpan, MIN_VIEW_RANGE_SEMITONES, MAX_VIEW_RANGE_SEMITONES);
+
+      let center = (vmin + vmax) / 2;
+      if (lastValidHz && isFinite(lastValidHz)) {
+        const currentMidi = hzToMidi(lastValidHz);
+        const edge = Math.min(2, range * 0.2);
+        const minEdge = center - range / 2 + edge;
+        const maxEdge = center + range / 2 - edge;
+        if (currentMidi < minEdge) center = currentMidi + (range / 2 - edge);
+        if (currentMidi > maxEdge) center = currentMidi - (range / 2 - edge);
+      }
+
+      const targetMinMidi = center - range / 2;
+      const targetMaxMidi = center + range / 2;
+      let targetMin = midiToHz(targetMinMidi);
+      let targetMax = midiToHz(targetMaxMidi);
+
+      if (targetMin < ABS_MIN_HZ) {
+        targetMin = ABS_MIN_HZ;
+        targetMax = Math.min(ABS_MAX_HZ, ABS_MIN_HZ * Math.pow(2, range / 12));
+      }
+      if (targetMax > ABS_MAX_HZ) {
+        targetMax = ABS_MAX_HZ;
+        targetMin = Math.max(ABS_MIN_HZ, ABS_MAX_HZ / Math.pow(2, range / 12));
+      }
+
+      viewMinHz += (targetMin - viewMinHz) * VIEW_SMOOTH;
+      viewMaxHz += (targetMax - viewMaxHz) * VIEW_SMOOTH;
+
+      if (viewMaxHz - viewMinHz < 10) {
+        const mid = (viewMinHz + viewMaxHz) / 2;
+        viewMinHz = mid - 5;
+        viewMaxHz = mid + 5;
+      }
     }
 
     // Draw pitch history (Hz) as a line
@@ -231,17 +296,10 @@
         return;
       }
 
-      // Determine Y scale: use recent min/max, with sensible bounds
-      const valid = historyHz.filter(v => v && v > 0);
-      let minHz = 80, maxHz = 1000;
-      if (valid.length > 3) {
-        const vmin = Math.min(...valid);
-        const vmax = Math.max(...valid);
-        // expand a bit so the line doesn't touch edges
-        minHz = clamp(vmin * 0.85, 50, 2000);
-        maxHz = clamp(vmax * 1.15, 80, 4000);
-        if (maxHz - minHz < 80) maxHz = minHz + 80;
-      }
+      // Determine Y scale: auto-zoom/pan based on recent history
+      updateViewRange();
+      const minHz = viewMinHz;
+      const maxHz = viewMaxHz;
 
       // Axis labels
       ctx.fillStyle = "rgba(255,255,255,0.55)";
@@ -327,6 +385,8 @@
           lastPitchAt = 0;
           recentHz.length = 0;
           historyHz.length = 0;
+          viewMinHz = 110;
+          viewMaxHz = 880;
           tick();
         });
       } catch (e) {
