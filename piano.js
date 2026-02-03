@@ -643,7 +643,22 @@ const updatePitchGraph = (() => {
         return labels;
     }
 
-    function drawGrid() {
+    function getPlotBounds(labels) {
+        ctx.save();
+        ctx.font = '12px "JetBrains Mono", monospace';
+        let maxWidth = 0;
+        labels.forEach((row) => {
+            const w = ctx.measureText(row.label).width;
+            if (w > maxWidth) maxWidth = w;
+        });
+        ctx.restore();
+        const pad = clamp(Math.ceil(maxWidth) + 12, 32, Math.floor(width * 0.25));
+        const left = pad;
+        const right = width - pad;
+        return { left, right, width: Math.max(1, right - left) };
+    }
+
+    function drawGrid(labels, plot) {
         ctx.save();
         ctx.strokeStyle = 'rgba(35, 55, 80, 0.12)';
         ctx.lineWidth = 1;
@@ -651,26 +666,28 @@ const updatePitchGraph = (() => {
         ctx.font = '12px "JetBrains Mono", monospace';
         ctx.fillStyle = 'rgba(35, 55, 80, 0.5)';
 
-        for (let x = 0; x <= width; x += 120) {
+        for (let x = plot.left; x <= plot.right; x += 120) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, height);
             ctx.stroke();
         }
 
-        const gridLabels = buildGridLabels();
-        gridLabels.forEach((row) => {
+        labels.forEach((row) => {
             const y = midiToY(row.midi);
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+            ctx.moveTo(plot.left, y);
+            ctx.lineTo(plot.right, y);
             ctx.stroke();
             ctx.fillText(row.label, 8, y - 6);
+            const rightLabel = row.label;
+            const textWidth = ctx.measureText(rightLabel).width;
+            ctx.fillText(rightLabel, width - textWidth - 8, y - 6);
         });
         ctx.restore();
     }
 
-    function buildPath() {
+    function buildPath(plot) {
         ctx.beginPath();
         let started = false;
         for (let x = 0; x < width; x++) {
@@ -681,11 +698,13 @@ const updatePitchGraph = (() => {
                 continue;
             }
             const y = midiToY(midi);
+            const t = width > 1 ? (x / (width - 1)) : 0;
+            const px = plot.left + t * plot.width;
             if (!started) {
-                ctx.moveTo(x, y);
+                ctx.moveTo(px, y);
                 started = true;
             } else {
-                ctx.lineTo(x, y);
+                ctx.lineTo(px, y);
             }
         }
     }
@@ -715,21 +734,23 @@ const updatePitchGraph = (() => {
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.fillRect(0, 0, width, height);
-        drawGrid();
+        const gridLabels = buildGridLabels();
+        const plot = getPlotBounds(gridLabels);
+        drawGrid(gridLabels, plot);
 
         ctx.save();
         ctx.shadowColor = 'rgba(46, 168, 161, 0.35)';
         ctx.shadowBlur = 14;
         ctx.strokeStyle = 'rgba(46, 168, 161, 0.35)';
         ctx.lineWidth = 6;
-        buildPath();
+        buildPath(plot);
         ctx.stroke();
         ctx.restore();
 
         ctx.save();
         ctx.strokeStyle = 'rgba(46, 168, 161, 0.95)';
         ctx.lineWidth = 2;
-        buildPath();
+        buildPath(plot);
         ctx.stroke();
         ctx.restore();
 
@@ -737,9 +758,10 @@ const updatePitchGraph = (() => {
         const lastMidi = history[lastIndex];
         if (lastMidi !== null && !isNaN(lastMidi)) {
             const y = midiToY(lastMidi);
+            const x = plot.right;
             ctx.fillStyle = '#2ea8a1';
             ctx.beginPath();
-            ctx.arc(width - 1, y, 3.5, 0, Math.PI * 2);
+            ctx.arc(x, y, 3.5, 0, Math.PI * 2);
             ctx.fill();
         }
     };
@@ -755,7 +777,9 @@ const updatePitchGraph = (() => {
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.fillRect(0, 0, width, height);
-        drawGrid();
+        const gridLabels = buildGridLabels();
+        const plot = getPlotBounds(gridLabels);
+        drawGrid(gridLabels, plot);
     };
 
     render.reset();
