@@ -537,6 +537,7 @@ const updatePitchGraph = (() => {
     const ABS_MAX_MIDI = 96;
     let viewMinMidi = 52;
     let viewMaxMidi = 66;
+    const MIN_VALID_HZ = 60;
 
     function updateViewRange() {
         const windowPoints = Math.min(history.length, VIEW_WINDOW_COLS);
@@ -656,7 +657,7 @@ const updatePitchGraph = (() => {
 
     const render = (hz, confidence) => {
         let midi = null;
-        if (isFinite(hz) && hz > 0 && confidence > CREPE_CONFIDENCE_THRESHOLD) {
+        if (isFinite(hz) && hz >= MIN_VALID_HZ && confidence > CREPE_CONFIDENCE_THRESHOLD) {
             midi = hzToMidi(hz);
         }
         history[writeIndex] = midi;
