@@ -533,11 +533,34 @@ const updatePitchGraph = (() => {
     const VIEW_SMOOTH = 0.18;
     const MIN_VIEW_RANGE_SEMITONES = 8;
     const MAX_VIEW_RANGE_SEMITONES = 18;
-    const ABS_MIN_MIDI = 24;
-    const ABS_MAX_MIDI = 96;
-    let viewMinMidi = 52;
-    let viewMaxMidi = 66;
-    const MIN_VALID_HZ = 60;
+
+    const SARGAM_TO_SEMITONE = {
+        S: 0, r: 1, R: 2, g: 3, G: 4, M: 5,
+        m: 6, P: 7, d: 8, D: 9, n: 10, N: 11
+    };
+
+    function sargamToMidi(sargam) {
+        if (!sargam || sargam.length < 1) return NaN;
+        const base = sargam[0];
+        const suffix = sargam.slice(1);
+        const semitone = SARGAM_TO_SEMITONE[base];
+        if (semitone == null) return NaN;
+        let offset = 0;
+        if (suffix.length) {
+            if (/^0+$/.test(suffix)) offset = -suffix.length;
+            else if (/^\d+$/.test(suffix)) offset = parseInt(suffix, 10);
+        }
+        const octave = 3 + offset;
+        return (octave + 1) * 12 + semitone;
+    }
+
+    const RANGE_MIN_MIDI = sargamToMidi('D00');
+    const RANGE_MAX_MIDI = sargamToMidi('R2');
+    const ABS_MIN_MIDI = RANGE_MIN_MIDI;
+    const ABS_MAX_MIDI = RANGE_MAX_MIDI;
+    const midMidi = (RANGE_MIN_MIDI + RANGE_MAX_MIDI) / 2;
+    let viewMinMidi = midMidi - MAX_VIEW_RANGE_SEMITONES / 2;
+    let viewMaxMidi = midMidi + MAX_VIEW_RANGE_SEMITONES / 2;
 
     function updateViewRange() {
         const windowPoints = Math.min(history.length, VIEW_WINDOW_COLS);
@@ -657,8 +680,11 @@ const updatePitchGraph = (() => {
 
     const render = (hz, confidence) => {
         let midi = null;
-        if (isFinite(hz) && hz >= MIN_VALID_HZ && confidence > CREPE_CONFIDENCE_THRESHOLD) {
-            midi = hzToMidi(hz);
+        if (isFinite(hz) && hz > 0 && confidence > CREPE_CONFIDENCE_THRESHOLD) {
+            const candidate = hzToMidi(hz);
+            if (candidate >= RANGE_MIN_MIDI && candidate <= RANGE_MAX_MIDI) {
+                midi = candidate;
+            }
         }
         history[writeIndex] = midi;
         writeIndex = (writeIndex + 1) % width;
@@ -699,8 +725,8 @@ const updatePitchGraph = (() => {
     render.reset = () => {
         history.fill(null);
         writeIndex = 0;
-        viewMinMidi = 52;
-        viewMaxMidi = 66;
+        viewMinMidi = midMidi - MAX_VIEW_RANGE_SEMITONES / 2;
+        viewMaxMidi = midMidi + MAX_VIEW_RANGE_SEMITONES / 2;
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.fillRect(0, 0, width, height);
