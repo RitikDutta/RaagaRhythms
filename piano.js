@@ -658,7 +658,22 @@ const updatePitchGraph = (() => {
         return { left, right, width: Math.max(1, right - left) };
     }
 
-    function drawGrid(labels, plot) {
+    function findClosestLabel(labels, targetMidi) {
+        if (targetMidi === null || targetMidi === undefined || isNaN(targetMidi)) return null;
+        let closest = null;
+        let minDelta = Infinity;
+        labels.forEach((row) => {
+            const delta = Math.abs(row.midi - targetMidi);
+            if (delta < minDelta) {
+                minDelta = delta;
+                closest = row.midi;
+            }
+        });
+        return closest;
+    }
+
+    function drawGrid(labels, plot, highlightMidi) {
+        const highlight = findClosestLabel(labels, highlightMidi);
         ctx.save();
         ctx.strokeStyle = 'rgba(35, 55, 80, 0.12)';
         ctx.lineWidth = 1;
@@ -682,7 +697,19 @@ const updatePitchGraph = (() => {
             ctx.fillText(row.label, 8, y - 6);
             const rightLabel = row.label;
             const textWidth = ctx.measureText(rightLabel).width;
-            ctx.fillText(rightLabel, width - textWidth - 8, y - 6);
+            const rightX = width - textWidth - 8;
+            if (highlight !== null && row.midi === highlight) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(46, 168, 161, 0.15)';
+                const boxY = Math.max(2, y - 14);
+                ctx.fillRect(rightX - 4, boxY, textWidth + 8, 16);
+                ctx.fillStyle = 'rgba(46, 168, 161, 0.95)';
+                ctx.font = '600 12px "JetBrains Mono", monospace';
+                ctx.fillText(rightLabel, rightX, y - 6);
+                ctx.restore();
+            } else {
+                ctx.fillText(rightLabel, rightX, y - 6);
+            }
         });
         ctx.restore();
     }
@@ -736,7 +763,9 @@ const updatePitchGraph = (() => {
         ctx.fillRect(0, 0, width, height);
         const gridLabels = buildGridLabels();
         const plot = getPlotBounds(gridLabels);
-        drawGrid(gridLabels, plot);
+        const lastIndex = (writeIndex - 1 + width) % width;
+        const lastMidi = history[lastIndex];
+        drawGrid(gridLabels, plot, lastMidi);
 
         ctx.save();
         ctx.shadowColor = 'rgba(46, 168, 161, 0.35)';
@@ -754,8 +783,6 @@ const updatePitchGraph = (() => {
         ctx.stroke();
         ctx.restore();
 
-        const lastIndex = (writeIndex - 1 + width) % width;
-        const lastMidi = history[lastIndex];
         if (lastMidi !== null && !isNaN(lastMidi)) {
             const y = midiToY(lastMidi);
             const x = plot.right;
@@ -779,7 +806,7 @@ const updatePitchGraph = (() => {
         ctx.fillRect(0, 0, width, height);
         const gridLabels = buildGridLabels();
         const plot = getPlotBounds(gridLabels);
-        drawGrid(gridLabels, plot);
+        drawGrid(gridLabels, plot, null);
     };
 
     render.reset();
