@@ -533,6 +533,9 @@ const updatePitchGraph = (() => {
     const VIEW_SMOOTH = 0.18;
     const MIN_VIEW_RANGE_SEMITONES = 8;
     const MAX_VIEW_RANGE_SEMITONES = 18;
+    const SMOOTH_WINDOW = 1;
+    const EMA_ALPHA = 0.35;
+    const MAX_JUMP_SEMITONES = 10;
 
     const SARGAM_TO_SEMITONE = {
         S: 0, r: 1, R: 2, g: 3, G: 4, M: 5,
@@ -561,6 +564,15 @@ const updatePitchGraph = (() => {
     const midMidi = (RANGE_MIN_MIDI + RANGE_MAX_MIDI) / 2;
     let viewMinMidi = midMidi - MAX_VIEW_RANGE_SEMITONES / 2;
     let viewMaxMidi = midMidi + MAX_VIEW_RANGE_SEMITONES / 2;
+    let emaMidi = null;
+    let lastValidMidi = null;
+    const recentMidi = [];
+
+    function median(values) {
+        const sorted = values.slice().sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return (sorted.length % 2) ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
 
     function updateViewRange() {
         const windowPoints = Math.min(history.length, VIEW_WINDOW_COLS);
@@ -681,9 +693,19 @@ const updatePitchGraph = (() => {
     const render = (hz, confidence) => {
         let midi = null;
         if (isFinite(hz) && hz > 0 && confidence > CREPE_CONFIDENCE_THRESHOLD) {
-            const candidate = hzToMidi(hz);
+            let candidate = hzToMidi(hz);
             if (candidate >= RANGE_MIN_MIDI && candidate <= RANGE_MAX_MIDI) {
-                midi = candidate;
+                if (lastValidMidi !== null && Math.abs(candidate - lastValidMidi) > MAX_JUMP_SEMITONES) {
+                    candidate = null;
+                }
+                if (candidate !== null) {
+                    recentMidi.push(candidate);
+                    while (recentMidi.length > SMOOTH_WINDOW) recentMidi.shift();
+                    const med = median(recentMidi);
+                    emaMidi = (emaMidi == null) ? med : (EMA_ALPHA * med + (1 - EMA_ALPHA) * emaMidi);
+                    midi = emaMidi;
+                    lastValidMidi = emaMidi;
+                }
             }
         }
         history[writeIndex] = midi;
@@ -727,6 +749,9 @@ const updatePitchGraph = (() => {
         writeIndex = 0;
         viewMinMidi = midMidi - MAX_VIEW_RANGE_SEMITONES / 2;
         viewMaxMidi = midMidi + MAX_VIEW_RANGE_SEMITONES / 2;
+        emaMidi = null;
+        lastValidMidi = null;
+        recentMidi.length = 0;
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.fillRect(0, 0, width, height);
