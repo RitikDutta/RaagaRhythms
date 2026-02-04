@@ -359,7 +359,104 @@ const confidenceFillEl = document.getElementById('confidence-fill');
 const pitchGraphCanvas = document.getElementById('pitch-graph');
 const activationCanvas = document.getElementById('activation');
 
-const CREPE_CONFIDENCE_THRESHOLD = 0.5;
+const analyzerSettings = {
+    confidenceThreshold: 0.5,
+    viewWindowCols: 240,
+    viewPaddingSemitones: 2,
+    viewSmooth: 0.18,
+    minViewRangeSemitones: 8,
+    maxViewRangeSemitones: 18,
+    smoothWindow: 1,
+    emaAlpha: 0.35,
+    maxJumpSemitones: 10
+};
+
+const analyzerSettingInputs = Array.from(document.querySelectorAll('[data-analyzer-setting]'));
+const analyzerValueNodes = Array.from(document.querySelectorAll('[data-analyzer-value]'));
+
+function formatAnalyzerValue(value, decimals) {
+    if (!isFinite(value)) return '--';
+    if (Number.isFinite(decimals)) {
+        return Number(value).toFixed(decimals);
+    }
+    return Number.isInteger(value) ? value.toString() : value.toString();
+}
+
+function updateAnalyzerValueDisplays(key, value) {
+    analyzerValueNodes.forEach((node) => {
+        if (node.dataset.analyzerValue !== key) return;
+        const decimals = node.dataset.analyzerDecimals ? parseInt(node.dataset.analyzerDecimals, 10) : null;
+        node.textContent = formatAnalyzerValue(value, decimals);
+    });
+}
+
+function updateAnalyzerSettingUI(key, value) {
+    analyzerSettingInputs.forEach((input) => {
+        if (input.dataset.analyzerSetting !== key) return;
+        const decimals = input.dataset.analyzerDecimals ? parseInt(input.dataset.analyzerDecimals, 10) : null;
+        input.value = formatAnalyzerValue(value, decimals);
+    });
+    updateAnalyzerValueDisplays(key, value);
+}
+
+function parseAnalyzerInputValue(input) {
+    const raw = parseFloat(input.value);
+    if (!isFinite(raw)) return null;
+    let value = raw;
+    const min = input.min !== '' ? parseFloat(input.min) : null;
+    const max = input.max !== '' ? parseFloat(input.max) : null;
+    if (isFinite(min)) value = Math.max(min, value);
+    if (isFinite(max)) value = Math.min(max, value);
+    if (input.dataset.analyzerType === 'int') {
+        value = Math.round(value);
+    }
+    const decimals = input.dataset.analyzerDecimals ? parseInt(input.dataset.analyzerDecimals, 10) : null;
+    if (Number.isFinite(decimals)) {
+        const factor = Math.pow(10, decimals);
+        value = Math.round(value * factor) / factor;
+    }
+    return value;
+}
+
+function applyAnalyzerSetting(key, nextValue) {
+    let value = nextValue;
+    if (key === 'minViewRangeSemitones' && value > analyzerSettings.maxViewRangeSemitones) {
+        value = analyzerSettings.maxViewRangeSemitones;
+    }
+    if (key === 'maxViewRangeSemitones' && value < analyzerSettings.minViewRangeSemitones) {
+        value = analyzerSettings.minViewRangeSemitones;
+    }
+    analyzerSettings[key] = value;
+    updateAnalyzerSettingUI(key, value);
+    if (updatePitchGraph && updatePitchGraph.reset) {
+        updatePitchGraph.reset();
+    }
+}
+
+function initAnalyzerSettings() {
+    analyzerSettingInputs.forEach((input) => {
+        const key = input.dataset.analyzerSetting;
+        if (!key) return;
+        const parsed = parseAnalyzerInputValue(input);
+        if (parsed !== null) {
+            analyzerSettings[key] = parsed;
+        }
+        input.addEventListener('input', () => {
+            const value = parseAnalyzerInputValue(input);
+            if (value === null) return;
+            applyAnalyzerSetting(key, value);
+        });
+        input.addEventListener('change', () => {
+            const value = parseAnalyzerInputValue(input);
+            if (value === null) return;
+            applyAnalyzerSetting(key, value);
+        });
+    });
+    Object.keys(analyzerSettings).forEach((key) => {
+        updateAnalyzerSettingUI(key, analyzerSettings[key]);
+    });
+}
+
 const CREPE_MODEL_URL = 'crepe/model/model.json';
 let crepeAudioContext = null;
 let crepeStream = null;
@@ -420,7 +517,7 @@ function updatePitchDisplay(hz, confidence) {
     if (!pitchNoteEl || !pitchHzEl || !pitchCentsEl) {
         return;
     }
-    if (!isFinite(hz) || hz <= 0 || confidence <= CREPE_CONFIDENCE_THRESHOLD) {
+    if (!isFinite(hz) || hz <= 0 || confidence <= analyzerSettings.confidenceThreshold) {
         pitchNoteEl.textContent = '--';
         pitchHzEl.textContent = '-- Hz';
         pitchCentsEl.textContent = 'No voice';
@@ -528,14 +625,10 @@ const updatePitchGraph = (() => {
     const history = new Array(width).fill(null);
     let writeIndex = 0;
 
-    const VIEW_WINDOW_COLS = Math.min(240, width);
-    const VIEW_PADDING_SEMITONES = 2;
-    const VIEW_SMOOTH = 0.18;
-    const MIN_VIEW_RANGE_SEMITONES = 8;
-    const MAX_VIEW_RANGE_SEMITONES = 18;
-    const SMOOTH_WINDOW = 1;
-    const EMA_ALPHA = 0.35;
-    const MAX_JUMP_SEMITONES = 10;
+    const getViewWindowCols = () => {
+        const cols = Math.floor(analyzerSettings.viewWindowCols);
+        return Math.min(width, Math.max(1, cols));
+    };
 
     const SARGAM_TO_SEMITONE = {
         S: 0, r: 1, R: 2, g: 3, G: 4, M: 5,
@@ -562,8 +655,8 @@ const updatePitchGraph = (() => {
     const ABS_MIN_MIDI = RANGE_MIN_MIDI;
     const ABS_MAX_MIDI = RANGE_MAX_MIDI;
     const midMidi = (RANGE_MIN_MIDI + RANGE_MAX_MIDI) / 2;
-    let viewMinMidi = midMidi - MAX_VIEW_RANGE_SEMITONES / 2;
-    let viewMaxMidi = midMidi + MAX_VIEW_RANGE_SEMITONES / 2;
+    let viewMinMidi = midMidi - analyzerSettings.maxViewRangeSemitones / 2;
+    let viewMaxMidi = midMidi + analyzerSettings.maxViewRangeSemitones / 2;
     let emaMidi = null;
     let lastValidMidi = null;
     const recentMidi = [];
@@ -575,7 +668,7 @@ const updatePitchGraph = (() => {
     }
 
     function updateViewRange() {
-        const windowPoints = Math.min(history.length, VIEW_WINDOW_COLS);
+        const windowPoints = Math.min(history.length, getViewWindowCols());
         const recent = [];
         for (let i = 0; i < windowPoints; i++) {
             const idx = (writeIndex - 1 - i + width) % width;
@@ -590,8 +683,8 @@ const updatePitchGraph = (() => {
         if (!isFinite(vmin) || !isFinite(vmax)) return;
 
         const span = Math.max(0.5, vmax - vmin);
-        const padded = span + VIEW_PADDING_SEMITONES * 2;
-        const range = clamp(padded, MIN_VIEW_RANGE_SEMITONES, MAX_VIEW_RANGE_SEMITONES);
+        const padded = span + analyzerSettings.viewPaddingSemitones * 2;
+        const range = clamp(padded, analyzerSettings.minViewRangeSemitones, analyzerSettings.maxViewRangeSemitones);
 
         let center = (vmin + vmax) / 2;
         const lastIndex = (writeIndex - 1 + width) % width;
@@ -615,8 +708,8 @@ const updatePitchGraph = (() => {
             targetMin = ABS_MAX_MIDI - range;
         }
 
-        viewMinMidi += (targetMin - viewMinMidi) * VIEW_SMOOTH;
-        viewMaxMidi += (targetMax - viewMaxMidi) * VIEW_SMOOTH;
+        viewMinMidi += (targetMin - viewMinMidi) * analyzerSettings.viewSmooth;
+        viewMaxMidi += (targetMax - viewMaxMidi) * analyzerSettings.viewSmooth;
 
         if (viewMaxMidi - viewMinMidi < 1) {
             const mid = (viewMinMidi + viewMaxMidi) / 2;
@@ -738,17 +831,19 @@ const updatePitchGraph = (() => {
 
     const render = (hz, confidence) => {
         let midi = null;
-        if (isFinite(hz) && hz > 0 && confidence > CREPE_CONFIDENCE_THRESHOLD) {
+        if (isFinite(hz) && hz > 0 && confidence > analyzerSettings.confidenceThreshold) {
             let candidate = hzToMidi(hz);
             if (candidate >= RANGE_MIN_MIDI && candidate <= RANGE_MAX_MIDI) {
-                if (lastValidMidi !== null && Math.abs(candidate - lastValidMidi) > MAX_JUMP_SEMITONES) {
+                if (lastValidMidi !== null && Math.abs(candidate - lastValidMidi) > analyzerSettings.maxJumpSemitones) {
                     candidate = null;
                 }
                 if (candidate !== null) {
                     recentMidi.push(candidate);
-                    while (recentMidi.length > SMOOTH_WINDOW) recentMidi.shift();
+                    const smoothWindow = Math.max(1, Math.round(analyzerSettings.smoothWindow));
+                    while (recentMidi.length > smoothWindow) recentMidi.shift();
                     const med = median(recentMidi);
-                    emaMidi = (emaMidi == null) ? med : (EMA_ALPHA * med + (1 - EMA_ALPHA) * emaMidi);
+                    const alpha = clamp(analyzerSettings.emaAlpha, 0, 1);
+                    emaMidi = (emaMidi == null) ? med : (alpha * med + (1 - alpha) * emaMidi);
                     midi = emaMidi;
                     lastValidMidi = emaMidi;
                 }
@@ -796,8 +891,8 @@ const updatePitchGraph = (() => {
     render.reset = () => {
         history.fill(null);
         writeIndex = 0;
-        viewMinMidi = midMidi - MAX_VIEW_RANGE_SEMITONES / 2;
-        viewMaxMidi = midMidi + MAX_VIEW_RANGE_SEMITONES / 2;
+        viewMinMidi = midMidi - analyzerSettings.maxViewRangeSemitones / 2;
+        viewMaxMidi = midMidi + analyzerSettings.maxViewRangeSemitones / 2;
         emaMidi = null;
         lastValidMidi = null;
         recentMidi.length = 0;
@@ -812,6 +907,8 @@ const updatePitchGraph = (() => {
     render.reset();
     return render;
 })();
+
+initAnalyzerSettings();
 
 function ensureCrepeAudioContext() {
     if (!crepeAudioContext) {

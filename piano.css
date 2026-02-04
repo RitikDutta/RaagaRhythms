@@ -408,6 +408,155 @@ h1 {
   background-image: linear-gradient(180deg, rgba(18, 28, 48, 0.95), rgba(8, 12, 24, 0.9));
 }
 
+.pitch-advanced {
+  margin-top: 14px;
+  padding: 12px 14px 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(35, 55, 80, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(35, 55, 80, 0.08);
+}
+
+.pitch-advanced summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #1f2a3a;
+  font-weight: 600;
+}
+
+.pitch-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.pitch-advanced summary::after {
+  content: "+";
+  color: #2ea8a1;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+}
+
+.pitch-advanced[open] summary::after {
+  content: "-";
+}
+
+.pitch-advanced-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px 16px;
+}
+
+.pitch-setting label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2c3a4d;
+}
+
+.pitch-setting-control {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pitch-setting input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(35, 55, 80, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  color: #1f2a3a;
+  box-sizing: border-box;
+}
+
+.pitch-setting input:focus-visible {
+  outline: 2px solid rgba(46, 168, 161, 0.4);
+  outline-offset: 2px;
+  border-color: rgba(46, 168, 161, 0.6);
+}
+
+.hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(46, 168, 161, 0.12);
+  border: 1px solid rgba(46, 168, 161, 0.35);
+  color: #2ea8a1;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+}
+
+.hint::after {
+  content: attr(data-hint);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(4px);
+  background: #1f2a3a;
+  color: #f4f8ff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  width: 220px;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 12px 24px rgba(15, 28, 45, 0.22);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 3;
+}
+
+.hint::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1f2a3a transparent transparent transparent;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.hint:hover::after,
+.hint:focus::after,
+.hint:hover::before,
+.hint:focus::before {
+  opacity: 1;
+}
+
+.pitch-setting label:hover .hint::after,
+.pitch-setting label:hover .hint::before {
+  opacity: 1;
+}
+
+.pitch-setting label:hover .hint::after {
+  transform: translateX(-50%) translateY(0);
+}
+
+.hint:hover::after,
+.hint:focus::after {
+  transform: translateX(-50%) translateY(0);
+}
+
 @media (max-width: 900px) {
   .piano {
     --white-key-width: 52px;

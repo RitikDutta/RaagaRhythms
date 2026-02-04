@@ -36,7 +36,7 @@
           <span class="metric-label">Voicing Confidence</span>
           <span class="metric-value" id="voicing-confidence">0.000</span>
           <div class="meter"><div id="confidence-fill"></div></div>
-          <span class="metric-sub">Threshold: 0.50</span>
+          <span class="metric-sub">Threshold: <span id="confidence-threshold" data-analyzer-value="confidenceThreshold" data-analyzer-decimals="2">0.50</span></span>
         </div>
         <div class="pitch-card">
           <span class="metric-label">Sample Rate</span>
@@ -61,6 +61,93 @@
           <canvas id="activation" width="960" height="360" aria-label="CREPE activation map"></canvas>
         </div>
       </div>
+
+      <details class="pitch-advanced" id="pitchAdvanced">
+        <summary>Advanced settings</summary>
+        <div class="pitch-advanced-grid">
+          <div class="pitch-setting">
+            <label for="confThreshold">
+              Voicing confidence threshold
+              <span class="hint" tabindex="0" role="img" aria-label="Minimum confidence required to accept a pitch. Example: 0.30 tracks soft voices; 0.60 ignores more noise." data-hint="Minimum confidence required to accept a pitch. Example: 0.30 tracks soft voices; 0.60 ignores more noise.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="confThreshold" type="number" min="0" max="1" step="0.01" value="0.50" data-analyzer-setting="confidenceThreshold" data-analyzer-type="float" data-analyzer-decimals="2">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="viewWindowCols">
+              Auto-zoom history (columns)
+              <span class="hint" tabindex="0" role="img" aria-label="How many recent graph columns are used to auto-zoom. Example: 120 reacts faster; 360 stays steadier." data-hint="How many recent graph columns are used to auto-zoom. Example: 120 reacts faster; 360 stays steadier.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="viewWindowCols" type="number" min="60" max="960" step="10" value="240" data-analyzer-setting="viewWindowCols" data-analyzer-type="int">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="viewPadding">
+              View padding (semitones)
+              <span class="hint" tabindex="0" role="img" aria-label="Extra headroom above and below the detected range. Example: 1 is tight; 4 gives breathing room." data-hint="Extra headroom above and below the detected range. Example: 1 is tight; 4 gives breathing room.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="viewPadding" type="number" min="0" max="8" step="0.25" value="2" data-analyzer-setting="viewPaddingSemitones" data-analyzer-type="float" data-analyzer-decimals="2">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="viewSmooth">
+              View smoothing (0-1)
+              <span class="hint" tabindex="0" role="img" aria-label="How quickly the graph view follows new pitch ranges. Example: 0.10 glides slowly; 0.50 snaps quickly." data-hint="How quickly the graph view follows new pitch ranges. Example: 0.10 glides slowly; 0.50 snaps quickly.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="viewSmooth" type="number" min="0" max="1" step="0.01" value="0.18" data-analyzer-setting="viewSmooth" data-analyzer-type="float" data-analyzer-decimals="2">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="minViewRange">
+              Min view range (semitones)
+              <span class="hint" tabindex="0" role="img" aria-label="Smallest vertical range the graph will show. Example: 6 focuses on tight melodies." data-hint="Smallest vertical range the graph will show. Example: 6 focuses on tight melodies.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="minViewRange" type="number" min="4" max="24" step="1" value="8" data-analyzer-setting="minViewRangeSemitones" data-analyzer-type="int">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="maxViewRange">
+              Max view range (semitones)
+              <span class="hint" tabindex="0" role="img" aria-label="Largest vertical range the graph will show. Example: 24 captures wide jumps." data-hint="Largest vertical range the graph will show. Example: 24 captures wide jumps.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="maxViewRange" type="number" min="8" max="36" step="1" value="18" data-analyzer-setting="maxViewRangeSemitones" data-analyzer-type="int">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="smoothWindow">
+              Median filter window
+              <span class="hint" tabindex="0" role="img" aria-label="Median smoothing window in frames. Example: 1 means no median filter; 5 rejects spikes." data-hint="Median smoothing window in frames. Example: 1 means no median filter; 5 rejects spikes.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="smoothWindow" type="number" min="1" max="9" step="1" value="1" data-analyzer-setting="smoothWindow" data-analyzer-type="int">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="emaAlpha">
+              EMA alpha (0-1)
+              <span class="hint" tabindex="0" role="img" aria-label="Exponential smoothing weight. Example: 0.20 is smoother; 0.60 is more responsive." data-hint="Exponential smoothing weight. Example: 0.20 is smoother; 0.60 is more responsive.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="emaAlpha" type="number" min="0" max="1" step="0.01" value="0.35" data-analyzer-setting="emaAlpha" data-analyzer-type="float" data-analyzer-decimals="2">
+            </div>
+          </div>
+          <div class="pitch-setting">
+            <label for="maxJumpSemitones">
+              Max jump (semitones)
+              <span class="hint" tabindex="0" role="img" aria-label="Reject single-frame jumps larger than this. Example: 6 ignores spikes; 14 allows larger leaps." data-hint="Reject single-frame jumps larger than this. Example: 6 ignores spikes; 14 allows larger leaps.">i</span>
+            </label>
+            <div class="pitch-setting-control">
+              <input id="maxJumpSemitones" type="number" min="1" max="24" step="1" value="10" data-analyzer-setting="maxJumpSemitones" data-analyzer-type="int">
+            </div>
+          </div>
+        </div>
+      </details>
 
       <p class="info">Tip: Use a quiet room and sustain a single note for best tracking.</p>
     </div>
