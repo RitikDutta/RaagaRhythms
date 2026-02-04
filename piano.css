@@ -34,6 +34,7 @@ h1 {
     border-radius: 10px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     position: relative; /* Needed for positioning black keys */
+    z-index: 1;
     border: 3px solid #222;
     max-width: 100%;
     overflow-x: auto;
@@ -713,63 +714,292 @@ h1 {
   margin-bottom: 15px;
 }
 
-/* --- Speed Control Styles (No changes needed unless adjusting layout) --- */
-.speed-control {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* Spacing between label, slider, value */
-}
-/* ... existing speed-control styles ... */
-
-/* --- Pitch Control Styles --- */
-.pitch-control {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* Spacing between label and select */
+/* --- Piano Controls --- */
+.piano-controls {
+  width: min(840px, 100%);
+  margin: 12px 0 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  position: relative;
+  z-index: 5;
 }
 
-.pitch-control label {
+.control-block {
+  position: relative;
+  overflow: visible;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 42, 58, 0.14);
+  background: linear-gradient(140deg, #ffffff 0%, #f4f8ff 55%, #eef7f4 100%);
+  box-shadow: 0 10px 18px rgba(31, 42, 58, 0.12);
+  backdrop-filter: blur(6px);
+}
+
+.control-block::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(92, 184, 92, 0.18), rgba(46, 168, 161, 0.12), transparent 65%);
+  opacity: 0.7;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.control-block > * {
+  position: relative;
+  z-index: 1;
+}
+
+.control-block:focus-within {
+  border-color: rgba(92, 184, 92, 0.6);
+  box-shadow: 0 0 0 2px rgba(92, 184, 92, 0.2), 0 12px 20px rgba(31, 42, 58, 0.14);
+}
+
+.control-block label {
   margin-bottom: 0;
-  font-weight: bold;
-  color: #444;
-}
-
-.pitch-control select {
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-
-.reverb-control {
+  font-weight: 600;
+  color: #2a3a52;
   display: flex;
   align-items: center;
-  gap: 10px; /* Spacing */
+  justify-content: space-between;
+  letter-spacing: 0.3px;
+  font-size: 13px;
 }
 
-.reverb-control label {
-  margin-bottom: 0;
-  font-weight: bold;
-  color: #444;
-}
-
-.reverb-control input[type="range"] {
-  flex-grow: 1;
-  max-width: 150px; /* Adjust width as needed */
-  cursor: pointer;
-  margin: 0;
-}
-
-.reverb-control span {
-  font-family: monospace;
-  font-size: 14px;
-  background-color: #eee;
-  padding: 3px 6px;
-  border-radius: 3px;
-  color: #333;
-  min-width: 40px; /* Ensure space for "x.xx" */
+.control-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  background: #eef3f9;
+  color: #2c3e50;
+  padding: 2px 5px;
+  border-radius: 6px;
+  min-width: 36px;
   text-align: right;
+}
+
+.control-block select {
+  width: 100%;
+  padding: 6px 34px 6px 10px;
+  border: 1px solid #c7d2e2;
+  border-radius: 8px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #51657c 50%),
+    linear-gradient(135deg, #51657c 50%, transparent 50%),
+    linear-gradient(180deg, #ffffff, #f4f7fb);
+  background-position: calc(100% - 18px) 55%, calc(100% - 12px) 55%, 0 0;
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-repeat: no-repeat;
+  font-size: 13px;
+  color: #2b3b4d;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.native-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-select {
+  position: relative;
+  width: 100%;
+  z-index: 2;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #c7d2e2;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f4f7fb);
+  font-size: 13px;
+  color: #2b3b4d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.custom-select-trigger:focus-visible {
+  outline: none;
+  border-color: #2ea8a1;
+  box-shadow: 0 0 0 2px rgba(46, 168, 161, 0.2);
+}
+
+.custom-select-chevron {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid #51657c;
+  border-bottom: 2px solid #51657c;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.custom-select.is-open .custom-select-chevron {
+  transform: rotate(-135deg);
+}
+
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 42, 58, 0.14);
+  background: linear-gradient(160deg, #ffffff, #eef3fa 60%, #e8f4f0);
+  box-shadow: 0 18px 30px rgba(31, 42, 58, 0.18);
+  max-height: 240px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  pointer-events: none;
+}
+
+.custom-select.is-open .custom-select-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.custom-select-option {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #1f2a3a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 247, 252, 0.9));
+}
+
+.custom-select-option:hover,
+.custom-select-option:focus,
+.custom-select-option:focus-visible {
+  background: linear-gradient(90deg, rgba(92, 184, 92, 0.22), rgba(46, 168, 161, 0.15));
+  outline: none;
+}
+
+.custom-select-option[aria-selected="true"] {
+  font-weight: 600;
+  color: #1b3b34;
+  background: linear-gradient(90deg, rgba(92, 184, 92, 0.28), rgba(46, 168, 161, 0.2));
+}
+
+.custom-select-option[aria-selected="true"]::after {
+  content: "✓";
+  font-size: 12px;
+  color: #2ea8a1;
+}
+
+.control-block input[type="range"] {
+  width: 100%;
+  margin: 0;
+  height: 22px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+@media (min-width: 820px) {
+  .control-block {
+    grid-template-columns: 0.9fr 1.7fr;
+    align-items: center;
+  }
+
+  .control-block label {
+    justify-content: flex-start;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .control-block select,
+  .control-block input[type="range"] {
+    align-self: center;
+  }
+}
+
+.control-block select:focus-visible {
+  outline: none;
+  border-color: #2ea8a1;
+  box-shadow: 0 0 0 2px rgba(46, 168, 161, 0.2);
+}
+
+.control-block select option {
+  background-color: #f4f7fb;
+  background-image: linear-gradient(180deg, #ffffff 0%, #eef3fa 100%);
+  color: #1f2a3a;
+  padding: 6px 10px;
+}
+
+.control-block select option:checked {
+  background-color: #dff3ea;
+  color: #1f2a3a;
+}
+
+.control-block input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(92, 184, 92, 0.75), rgba(92, 184, 92, 0.18));
+  border: 1px solid rgba(31, 42, 58, 0.16);
+}
+
+.control-block input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #5cb85c;
+  box-shadow: 0 3px 6px rgba(31, 42, 58, 0.25);
+}
+
+.control-block input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(92, 184, 92, 0.25);
+  border: 1px solid rgba(31, 42, 58, 0.16);
+}
+
+.control-block input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(92, 184, 92, 0.75);
+}
+
+.control-block input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #5cb85c;
+  box-shadow: 0 3px 6px rgba(31, 42, 58, 0.25);
+}
+
+.control-block input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(92, 184, 92, 0.2), 0 3px 6px rgba(31, 42, 58, 0.25);
+}
+
+.control-block input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(92, 184, 92, 0.2), 0 3px 6px rgba(31, 42, 58, 0.25);
 }

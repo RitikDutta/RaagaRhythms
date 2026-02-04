@@ -324,6 +324,132 @@ if (speedSlider && speedValueDisplay) { /* ... no change ... */
     speedSlider.addEventListener('input', () => { currentSpeedFactor = parseFloat(speedSlider.value); speedValueDisplay.textContent = currentSpeedFactor.toFixed(2) + 'x'; });
 } else { console.warn("Speed slider or value display element not found!"); }
 
+function initCustomSelect(nativeSelectId) {
+    const nativeSelect = document.getElementById(nativeSelectId);
+    if (!nativeSelect) return;
+    const wrapper = nativeSelect.closest('.control-block');
+    if (!wrapper) return;
+    const customSelect = wrapper.querySelector('.custom-select');
+    if (!customSelect) return;
+    const trigger = customSelect.querySelector('.custom-select-trigger');
+    const valueSpan = customSelect.querySelector('.custom-select-value');
+    const menu = customSelect.querySelector('.custom-select-menu');
+    if (!trigger || !valueSpan || !menu) return;
+
+    const buildOptions = () => {
+        menu.innerHTML = '';
+        Array.from(nativeSelect.options).forEach((opt) => {
+            const item = document.createElement('li');
+            item.className = 'custom-select-option';
+            item.setAttribute('role', 'option');
+            item.dataset.value = opt.value;
+            item.textContent = opt.textContent;
+            item.tabIndex = -1;
+            item.setAttribute('aria-selected', opt.selected ? 'true' : 'false');
+            if (opt.selected) { valueSpan.textContent = opt.textContent; }
+            menu.appendChild(item);
+        });
+    };
+
+    const options = () => Array.from(menu.querySelectorAll('.custom-select-option'));
+
+    const setSelectedByValue = (value, triggerChange = true) => {
+        const items = options();
+        const target = items.find((item) => item.dataset.value === value);
+        if (!target) return;
+        items.forEach((item) => item.setAttribute('aria-selected', item === target ? 'true' : 'false'));
+        valueSpan.textContent = target.textContent;
+        nativeSelect.value = value;
+        if (triggerChange) { nativeSelect.dispatchEvent(new Event('change', { bubbles: true })); }
+    };
+
+    const closeMenu = () => {
+        customSelect.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const openMenu = () => {
+        customSelect.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        const current = menu.querySelector('[aria-selected="true"]');
+        if (current) { current.focus(); }
+    };
+
+    buildOptions();
+    setSelectedByValue(nativeSelect.value, false);
+
+    trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (customSelect.classList.contains('is-open')) { closeMenu(); }
+        else { openMenu(); }
+    });
+
+    trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!customSelect.classList.contains('is-open')) { openMenu(); }
+            const opts = options();
+            if (!opts.length) return;
+            const currentIndex = opts.findIndex((item) => item.getAttribute('aria-selected') === 'true');
+            const nextIndex = e.key === 'ArrowDown'
+                ? Math.min((currentIndex >= 0 ? currentIndex + 1 : 0), opts.length - 1)
+                : Math.max((currentIndex >= 0 ? currentIndex - 1 : 0), 0);
+            opts[nextIndex].focus();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (customSelect.classList.contains('is-open')) { closeMenu(); }
+            else { openMenu(); }
+        }
+    });
+
+    menu.addEventListener('click', (e) => {
+        const target = e.target.closest('.custom-select-option');
+        if (!target) return;
+        setSelectedByValue(target.dataset.value);
+        closeMenu();
+        trigger.focus();
+    });
+
+    menu.addEventListener('keydown', (e) => {
+        const opts = options();
+        if (!opts.length) return;
+        const currentIndex = opts.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            opts[Math.min(currentIndex + 1, opts.length - 1)].focus();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            opts[Math.max(currentIndex - 1, 0)].focus();
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            opts[0].focus();
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            opts[opts.length - 1].focus();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeMenu();
+            trigger.focus();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const focused = opts[currentIndex];
+            if (focused) {
+                setSelectedByValue(focused.dataset.value);
+                closeMenu();
+                trigger.focus();
+            }
+        }
+    });
+
+    nativeSelect.addEventListener('change', () => {
+        setSelectedByValue(nativeSelect.value, false);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!customSelect.contains(e.target)) { closeMenu(); }
+    });
+}
+
 // Pitch Select Listener
 if (pitchSelect) { /* ... no change ... */
     pitchSelect.addEventListener('change', () => {
@@ -331,6 +457,8 @@ if (pitchSelect) { /* ... no change ... */
         Object.keys(activeNotes).forEach(noteName => stopNote(noteName));
     });
 } else { console.warn("Pitch select element not found!"); }
+
+initCustomSelect('pitchSelect');
 
 // Reverb Slider Listener
 if (reverbSlider && reverbValueDisplay) { /* ... no change ... */
