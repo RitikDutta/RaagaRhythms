@@ -1154,7 +1154,14 @@ async function startCrepeAnalyzer() {
 
         setPitchStatus('Requesting microphone...');
         resetCrepeUI();
-        crepeStream = await getUserMedia({ audio: true });
+        crepeStream = await getUserMedia({
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                channelCount: 1
+            }
+        });
         crepeMicSource = crepeAudioContext.createMediaStreamSource(crepeStream);
 
         const minBufferSize = crepeAudioContext.sampleRate / 16000 * 1024;
