@@ -455,6 +455,9 @@ if (pitchSelect) { /* ... no change ... */
     pitchSelect.addEventListener('change', () => {
         globalPitchShiftSemitones = parseInt(pitchSelect.value); console.log("Global Pitch Shift set to:", globalPitchShiftSemitones);
         Object.keys(activeNotes).forEach(noteName => stopNote(noteName));
+        if (updatePitchGraph && updatePitchGraph.reset) {
+            updatePitchGraph.reset();
+        }
     });
 } else { console.warn("Pitch select element not found!"); }
 
@@ -614,6 +617,10 @@ function hzToMidi(hz) {
     return 69 + 12 * log2(hz / 440);
 }
 
+function getAnalyzerRootShiftSemitones() {
+    return Number.isFinite(globalPitchShiftSemitones) ? globalPitchShiftSemitones : 0;
+}
+
 const CREPE_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 function formatAnalyzerSargam(noteName, octave) {
     const western = `${noteName}${octave}`;
@@ -622,7 +629,7 @@ function formatAnalyzerSargam(noteName, octave) {
 }
 
 function hzToNote(hz) {
-    const midi = hzToMidi(hz);
+    const midi = hzToMidi(hz) - getAnalyzerRootShiftSemitones();
     const rounded = Math.round(midi);
     const name = CREPE_NOTE_NAMES[((rounded % 12) + 12) % 12];
     const octave = Math.floor(rounded / 12) - 1;
@@ -960,7 +967,7 @@ const updatePitchGraph = (() => {
     const render = (hz, confidence) => {
         let midi = null;
         if (isFinite(hz) && hz > 0 && confidence > analyzerSettings.confidenceThreshold) {
-            let candidate = hzToMidi(hz);
+            let candidate = hzToMidi(hz) - getAnalyzerRootShiftSemitones();
             if (candidate >= RANGE_MIN_MIDI && candidate <= RANGE_MAX_MIDI) {
                 if (lastValidMidi !== null && Math.abs(candidate - lastValidMidi) > analyzerSettings.maxJumpSemitones) {
                     candidate = null;
