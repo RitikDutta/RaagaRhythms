@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+  <title>CREPE Pitch Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="crepe.css">
+</head>
+<body>
+  <div id="app">
+    <header class="hero">
+      <div class="title">CREPE Pitch Tracker</div>
+      <div class="subtitle">Real-time pitch estimation from your microphone</div>
+      <div class="status-pill">
+        <span class="status-label">Status</span>
+        <span id="status">Idle</span>
+      </div>
+    </header>
+
+    <section class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Estimated Pitch</div>
+        <div class="stat-value" id="pitch-note">--</div>
+        <div class="stat-sub" id="pitch-hz">-- Hz</div>
+        <div class="stat-sub" id="pitch-cents">No voice</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Voicing Confidence</div>
+        <div class="stat-value" id="voicing-confidence">0.000</div>
+        <div class="meter"><div id="confidence-fill"></div></div>
+        <div class="stat-sub">Threshold: 0.50</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sample Rate</div>
+        <div class="stat-value"><span id="srate" data-srate></span> Hz</div>
+        <div class="stat-sub">Audio input</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Pitch Track</h2>
+        <div class="panel-meta">History (left = older)</div>
+      </div>
+      <canvas id="pitch-graph" width="960" height="260"></canvas>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Activation Map</h2>
+        <div class="panel-meta">CREPE output bins</div>
+      </div>
+      <canvas id="activation" width="960" height="360"></canvas>
+    </section>
+
+    <section id="info" class="panel info">
+      NOTE:
+      This demo works most reliably in the latest versions of Chrome on Windows
+      and MacOS. There is an issue where TensorFlow.js is not working properly
+      on Linux versions of Chrome.
+      <br><br>
+      A stripped-down model of CREPE is running on this browser,
+      which has less than 3 percent of parameters. The performance of
+      this online demo therefore may not be as good as reported
+      in the <a href="https://arxiv.org/abs/1802.06182">paper</a>,
+      and it may make more octave errors than the full model.
+      To run the model with the full capacity, check out the Git repo at
+      <a href="https://github.com/marl/crepe">https://github.com/marl/crepe</a>
+      and follow the instructions in README.md.
+      <br><br>
+      The model is trained on 16 kHz audio, and due to the imperfect resampling
+      in the browser, this demo works best when the hardware sample rate is
+      a multiple of 16000 Hz. Your sample rate is <span data-srate></span> Hz.
+      <br><br>
+      For further details on this model, please refer to our paper:<br><br>
+      &nbsp; &nbsp; <a href="https://arxiv.org/abs/1802.06182">
+      CREPE: A Convolutional Representation for Pitch Estimation</a><br>
+      &nbsp; &nbsp; Jong Wook Kim, Justin Salamon, Peter Li, Juan Pablo Bello<br>
+      &nbsp; &nbsp; <i>Proceedings of the IEEE Conference on ICASSP, 2018.</i>
+      <br><br>
+    </section>
+  </div>
+  <script src="tfjs-0.8.0.min.js"></script>
+  <script src="crepe.js"></script>
+</body>
+</html>
