@@ -480,6 +480,7 @@ if (infoParagraphs.length > 1) { /* ... no change ... */
 
 // --- Voice Pitch Analyzer (CREPE) ---
 const pitchStartBtn = document.getElementById('pitchStartBtn');
+const pitchTabBtn = document.getElementById('pitchTabBtn');
 const pitchStopBtn = document.getElementById('pitchStopBtn');
 const pitchStatus = document.getElementById('pitchStatus');
 const pitchNoteEl = document.getElementById('pitch-note');
@@ -597,6 +598,8 @@ let crepeGainNode = null;
 let crepeModel = null;
 let crepeLoadingPromise = null;
 let crepeRunning = false;
+let crepeInputMode = null;
+let crepeActiveAudioTrack = null;
 let centMapping = null;
 
 function setPitchStatus(message) {
@@ -1048,9 +1051,35 @@ initAnalyzerSettings();
 function ensureCrepeAudioContext() {
     if (!crepeAudioContext) {
         crepeAudioContext = new AudioContext();
-        document.querySelectorAll('[data-srate]').forEach((node) => {
-            node.textContent = crepeAudioContext.sampleRate;
-        });
+    }
+    document.querySelectorAll('[data-srate]').forEach((node) => {
+        node.textContent = crepeAudioContext.sampleRate;
+    });
+}
+
+function resetCrepeSampleRateDisplay() {
+    document.querySelectorAll('[data-srate]').forEach((node) => {
+        node.textContent = '--';
+    });
+}
+
+function setAnalyzerButtons({ micDisabled, tabDisabled, stopDisabled }) {
+    if (pitchStartBtn) pitchStartBtn.disabled = !!micDisabled;
+    if (pitchTabBtn) pitchTabBtn.disabled = !!tabDisabled;
+    if (pitchStopBtn) pitchStopBtn.disabled = !!stopDisabled;
+}
+
+async function closeCrepeAudioContext() {
+    if (!crepeAudioContext) return;
+    try {
+        if (crepeAudioContext.state !== 'closed') {
+            await crepeAudioContext.close();
+        }
+    } catch (error) {
+        console.warn('CREPE AudioContext close error:', error);
+    } finally {
+        crepeAudioContext = null;
+        resetCrepeSampleRateDisplay();
     }
 }
 
@@ -1078,7 +1107,7 @@ function ensureCentMapping() {
     }
 }
 
-function processMicrophoneBuffer(event) {
+function processAudioBuffer(event) {
     if (!crepeRunning || !crepeModel) return;
     ensureCentMapping();
     resample(event.inputBuffer, (resampled) => {
@@ -1111,6 +1140,25 @@ function processMicrophoneBuffer(event) {
     });
 }
 
+function processAudioSource(sourceNode) {
+    if (!crepeAudioContext) {
+        throw new Error('AudioContext is not initialized.');
+    }
+    const minBufferSize = crepeAudioContext.sampleRate / 16000 * 1024;
+    let bufferSize = 4;
+    for (; bufferSize < minBufferSize; bufferSize *= 2) {}
+
+    crepeScriptNode = crepeAudioContext.createScriptProcessor(bufferSize, 1, 1);
+    crepeScriptNode.onaudioprocess = processAudioBuffer;
+
+    crepeGainNode = crepeAudioContext.createGain();
+    crepeGainNode.gain.setValueAtTime(0, crepeAudioContext.currentTime);
+
+    sourceNode.connect(crepeScriptNode);
+    crepeScriptNode.connect(crepeGainNode);
+    crepeGainNode.connect(crepeAudioContext.destination);
+}
+
 function getUserMedia(constraints) {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         return navigator.mediaDevices.getUserMedia(constraints);
@@ -1140,6 +1188,50 @@ async function loadCrepeModel() {
     return crepeLoadingPromise;
 }
 
+async function prepareCrepeStart() {
+    setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: true });
+    setPitchStatus('Loading CREPE model...');
+    ensureCrepeAudioContext();
+    if (crepeAudioContext.state === 'suspended') {
+        await crepeAudioContext.resume();
+    }
+    await loadCrepeModel();
+    resetCrepeUI();
+}
+
+function onCrepeInputEnded() {
+    if (!crepeRunning) return;
+    const message = crepeInputMode === 'tab' ? 'Tab sharing ended.' : 'Microphone stream ended.';
+    stopCrepeAnalyzer(message);
+}
+
+function setCrepeInputTrack(track) {
+    if (crepeActiveAudioTrack) {
+        crepeActiveAudioTrack.removeEventListener('ended', onCrepeInputEnded);
+    }
+    crepeActiveAudioTrack = track || null;
+    if (crepeActiveAudioTrack) {
+        crepeActiveAudioTrack.addEventListener('ended', onCrepeInputEnded);
+    }
+}
+
+function attachCrepeStream(stream, mode, noAudioMessage) {
+    const audioTracks = stream.getAudioTracks();
+    if (!audioTracks.length) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error(noAudioMessage);
+    }
+    if (!crepeAudioContext) {
+        throw new Error('AudioContext is not initialized.');
+    }
+    crepeStream = stream;
+    crepeInputMode = mode;
+    crepeMicSource = crepeAudioContext.createMediaStreamSource(stream);
+    processAudioSource(crepeMicSource);
+    setCrepeInputTrack(audioTracks[0]);
+    crepeRunning = true;
+}
+
 async function startCrepeAnalyzer() {
     if (!pitchStartBtn || !pitchStopBtn) return;
     if (!window.isSecureContext) {
@@ -1148,20 +1240,10 @@ async function startCrepeAnalyzer() {
     }
     if (crepeRunning) return;
 
-    pitchStartBtn.disabled = true;
-    pitchStopBtn.disabled = true;
-
     try {
-        setPitchStatus('Loading CREPE model...');
-        ensureCrepeAudioContext();
-        if (crepeAudioContext.state === 'suspended') {
-            await crepeAudioContext.resume();
-        }
-        await loadCrepeModel();
-
+        await prepareCrepeStart();
         setPitchStatus('Requesting microphone...');
-        resetCrepeUI();
-        crepeStream = await getUserMedia({
+        const stream = await getUserMedia({
             audio: {
                 echoCancellation: false,
                 noiseSuppression: false,
@@ -1169,37 +1251,58 @@ async function startCrepeAnalyzer() {
                 channelCount: 1
             }
         });
-        crepeMicSource = crepeAudioContext.createMediaStreamSource(crepeStream);
-
-        const minBufferSize = crepeAudioContext.sampleRate / 16000 * 1024;
-        let bufferSize = 4;
-        for (; bufferSize < minBufferSize; bufferSize *= 2) {}
-
-        crepeScriptNode = crepeAudioContext.createScriptProcessor(bufferSize, 1, 1);
-        crepeScriptNode.onaudioprocess = processMicrophoneBuffer;
-
-        crepeGainNode = crepeAudioContext.createGain();
-        crepeGainNode.gain.setValueAtTime(0, crepeAudioContext.currentTime);
-
-        crepeMicSource.connect(crepeScriptNode);
-        crepeScriptNode.connect(crepeGainNode);
-        crepeGainNode.connect(crepeAudioContext.destination);
-
-        crepeRunning = true;
+        attachCrepeStream(stream, 'mic', 'No microphone audio captured.');
         setPitchStatus('Mic on.');
-        pitchStartBtn.disabled = true;
-        pitchStopBtn.disabled = false;
+        setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: false });
     } catch (error) {
-        console.error('CREPE start error:', error);
-        cleanupCrepeNodes();
+        console.error('CREPE mic start error:', error);
+        await cleanupCrepeNodes({ closeAudioContext: true });
+        resetCrepeUI();
         const message = error && error.message ? `Mic error: ${error.message}` : 'Mic permission denied or unavailable.';
         setPitchStatus(message);
-        pitchStartBtn.disabled = false;
-        pitchStopBtn.disabled = true;
+        setAnalyzerButtons({ micDisabled: false, tabDisabled: false, stopDisabled: true });
     }
 }
 
-function cleanupCrepeNodes() {
+async function startCrepeTabAnalyzer() {
+    if (!pitchTabBtn || !pitchStopBtn) return;
+    if (!window.isSecureContext) {
+        setPitchStatus('Tab capture requires HTTPS or localhost.');
+        return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        setPitchStatus('Tab capture is not supported in this browser.');
+        return;
+    }
+    if (crepeRunning) return;
+
+    try {
+        await prepareCrepeStart();
+        setPitchStatus('Select "This Tab" and enable "Share audio", then click Share.');
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+        });
+        attachCrepeStream(stream, 'tab', 'No audio captured—please enable Share audio.');
+        setPitchStatus('Tab audio on.');
+        setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: false });
+    } catch (error) {
+        console.error('CREPE tab start error:', error);
+        await cleanupCrepeNodes({ closeAudioContext: true });
+        resetCrepeUI();
+        let message = 'Tab audio capture failed.';
+        if (error && error.name === 'NotAllowedError') {
+            message = 'Tab sharing was cancelled or blocked.';
+        } else if (error && error.message) {
+            message = error.message;
+        }
+        setPitchStatus(message);
+        setAnalyzerButtons({ micDisabled: false, tabDisabled: false, stopDisabled: true });
+    }
+}
+
+async function cleanupCrepeNodes({ closeAudioContext = false } = {}) {
+    setCrepeInputTrack(null);
     if (crepeScriptNode) {
         crepeScriptNode.disconnect();
         crepeScriptNode.onaudioprocess = null;
@@ -1217,7 +1320,11 @@ function cleanupCrepeNodes() {
         crepeStream.getTracks().forEach((track) => track.stop());
         crepeStream = null;
     }
+    crepeInputMode = null;
     crepeRunning = false;
+    if (closeAudioContext) {
+        await closeCrepeAudioContext();
+    }
 }
 
 function resetCrepeUI() {
@@ -1236,24 +1343,28 @@ function resetCrepeUI() {
     }
 }
 
-function stopCrepeAnalyzer() {
-    cleanupCrepeNodes();
+async function stopCrepeAnalyzer(message = null) {
+    const statusMessage = message || (crepeInputMode === 'tab' ? 'Tab audio off.' : 'Mic off.');
+    await cleanupCrepeNodes({ closeAudioContext: true });
     resetCrepeUI();
-    setPitchStatus('Mic off.');
-    if (pitchStartBtn) {
-        pitchStartBtn.disabled = false;
-    }
-    if (pitchStopBtn) {
-        pitchStopBtn.disabled = true;
-    }
+    setPitchStatus(statusMessage);
+    setAnalyzerButtons({ micDisabled: false, tabDisabled: false, stopDisabled: true });
 }
 
 if (pitchStartBtn && pitchStopBtn) {
     pitchStartBtn.addEventListener('click', startCrepeAnalyzer);
-    pitchStopBtn.addEventListener('click', stopCrepeAnalyzer);
+    if (pitchTabBtn) {
+        pitchTabBtn.addEventListener('click', startCrepeTabAnalyzer);
+    }
+    pitchStopBtn.addEventListener('click', () => {
+        stopCrepeAnalyzer();
+    });
     resetCrepeUI();
+    resetCrepeSampleRateDisplay();
+    setAnalyzerButtons({ micDisabled: false, tabDisabled: false, stopDisabled: true });
+    setPitchStatus('Idle.');
     if (!window.tf) {
         setPitchStatus('TensorFlow.js failed to load.');
-        pitchStartBtn.disabled = true;
+        setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: true });
     }
 }
