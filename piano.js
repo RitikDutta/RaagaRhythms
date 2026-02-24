@@ -36,6 +36,9 @@ const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 const activeNotes = {};
+const pianoKeyElementsByNote = new Map();
+let analyzerHighlightedKeyElement = null;
+let analyzerHighlightedNote = null;
 let convolver = null; let dryGain = null; let wetGain = null; let reverbAmount = 0.1;
 const VIBRATO_RATE = 5; const VIBRATO_DEPTH = 0.005;
 
@@ -353,6 +356,7 @@ if (pianoContainer) { /* ... no change ... */
         keyElement.addEventListener('touchstart', handleTouchPress, { passive: false });
         keyElement.addEventListener('touchend', handleTouchRelease, { passive: false });
         keyElement.addEventListener('touchcancel', handleTouchRelease, { passive: false });
+        pianoKeyElementsByNote.set(note, keyElement);
         pianoContainer.appendChild(keyElement);
         if (!isBlackKey) { whiteKeyIndex++; }
     });
@@ -504,6 +508,7 @@ function initCustomSelect(nativeSelectId) {
 if (pitchSelect) { /* ... no change ... */
     pitchSelect.addEventListener('change', () => {
         globalPitchShiftSemitones = parseInt(pitchSelect.value); console.log("Global Pitch Shift set to:", globalPitchShiftSemitones);
+        clearAnalyzerKeyHighlight();
         Object.keys(activeNotes).forEach(noteName => stopNote(noteName));
         if (updatePitchGraph && updatePitchGraph.reset) {
             updatePitchGraph.reset();
@@ -543,6 +548,7 @@ const activationCanvas = document.getElementById('activation');
 
 const analyzerSettings = {
     confidenceThreshold: 0.5,
+    highlightDetectedKey: false,
     viewWindowCols: 240,
     viewPaddingSemitones: 2,
     viewSmooth: 0.18,
@@ -575,6 +581,10 @@ function updateAnalyzerValueDisplays(key, value) {
 function updateAnalyzerSettingUI(key, value) {
     analyzerSettingInputs.forEach((input) => {
         if (input.dataset.analyzerSetting !== key) return;
+        if (input.type === 'checkbox') {
+            input.checked = !!value;
+            return;
+        }
         const decimals = input.dataset.analyzerDecimals ? parseInt(input.dataset.analyzerDecimals, 10) : null;
         input.value = formatAnalyzerValue(value, decimals);
     });
@@ -582,6 +592,9 @@ function updateAnalyzerSettingUI(key, value) {
 }
 
 function parseAnalyzerInputValue(input) {
+    if (input.type === 'checkbox' || input.dataset.analyzerType === 'bool') {
+        return !!input.checked;
+    }
     const raw = parseFloat(input.value);
     if (!isFinite(raw)) return null;
     let value = raw;
@@ -602,6 +615,9 @@ function parseAnalyzerInputValue(input) {
 
 function applyAnalyzerSetting(key, nextValue) {
     let value = nextValue;
+    if (key === 'highlightDetectedKey') {
+        value = !!value;
+    }
     if (key === 'minViewRangeSemitones' && value > analyzerSettings.maxViewRangeSemitones) {
         value = analyzerSettings.maxViewRangeSemitones;
     }
@@ -610,6 +626,12 @@ function applyAnalyzerSetting(key, nextValue) {
     }
     analyzerSettings[key] = value;
     updateAnalyzerSettingUI(key, value);
+    if (key === 'highlightDetectedKey') {
+        if (!value) {
+            clearAnalyzerKeyHighlight();
+        }
+        return;
+    }
     if (updatePitchGraph && updatePitchGraph.reset) {
         updatePitchGraph.reset();
     }
@@ -670,6 +692,30 @@ function hzToMidi(hz) {
     return 69 + 12 * log2(hz / 440);
 }
 
+function midiToWesternNote(midiValue) {
+    const rounded = Math.round(midiValue);
+    const noteName = NOTE_NAMES[((rounded % 12) + 12) % 12];
+    const octave = Math.floor(rounded / 12) - 1;
+    return `${noteName}${octave}`;
+}
+
+function clearAnalyzerKeyHighlight() {
+    if (!analyzerHighlightedKeyElement) return;
+    analyzerHighlightedKeyElement.classList.remove('analyzer-active');
+    analyzerHighlightedKeyElement = null;
+    analyzerHighlightedNote = null;
+}
+
+function setAnalyzerKeyHighlight(note) {
+    if (analyzerHighlightedNote === note && analyzerHighlightedKeyElement) return;
+    clearAnalyzerKeyHighlight();
+    const keyElement = pianoKeyElementsByNote.get(note);
+    if (!keyElement) return;
+    keyElement.classList.add('analyzer-active');
+    analyzerHighlightedKeyElement = keyElement;
+    analyzerHighlightedNote = note;
+}
+
 function getAnalyzerRootShiftSemitones() {
     return Number.isFinite(globalPitchShiftSemitones) ? globalPitchShiftSemitones : 0;
 }
@@ -716,6 +762,28 @@ function updatePitchDisplay(hz, confidence) {
     pitchNoteEl.textContent = note.label;
     pitchHzEl.textContent = `${hz.toFixed(2)} Hz`;
     pitchCentsEl.textContent = centsText;
+}
+
+function updateAnalyzerKeyHighlight(hz, confidence) {
+    if (!analyzerSettings.highlightDetectedKey) {
+        clearAnalyzerKeyHighlight();
+        return;
+    }
+    if (!isFinite(hz) || hz <= 0 || confidence <= analyzerSettings.confidenceThreshold) {
+        clearAnalyzerKeyHighlight();
+        return;
+    }
+    const adjustedMidi = hzToMidi(hz) - getAnalyzerRootShiftSemitones();
+    if (!isFinite(adjustedMidi)) {
+        clearAnalyzerKeyHighlight();
+        return;
+    }
+    const note = midiToWesternNote(adjustedMidi);
+    if (!pianoKeyElementsByNote.has(note)) {
+        clearAnalyzerKeyHighlight();
+        return;
+    }
+    setAnalyzerKeyHighlight(note);
 }
 
 const updateActivation = (() => {
@@ -1184,6 +1252,7 @@ function processAudioBuffer(event) {
             const predictedHz = 10 * Math.pow(2, predictedCent / 1200.0);
 
             updatePitchDisplay(predictedHz, confidence);
+            updateAnalyzerKeyHighlight(predictedHz, confidence);
             updatePitchGraph(predictedHz, confidence);
             updateActivation(activation.dataSync());
         });
@@ -1379,6 +1448,7 @@ async function cleanupCrepeNodes({ closeAudioContext = false } = {}) {
 
 function resetCrepeUI() {
     updatePitchDisplay(NaN, 0);
+    clearAnalyzerKeyHighlight();
     if (voicingConfidenceEl) {
         voicingConfidenceEl.textContent = '0.000';
     }
