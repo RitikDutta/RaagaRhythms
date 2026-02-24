@@ -289,6 +289,36 @@ function playSequence() {
 // --- Piano Key Generation and Event Handling ---
 const pianoContainer = document.getElementById('piano');
 if (pianoContainer) { /* ... no change ... */
+    let mouseIsDownOnPiano = false;
+    let draggedNote = null;
+    let draggedKeyElement = null;
+
+    const clearDraggedNote = () => {
+        if (!draggedNote) return;
+        stopNote(draggedNote);
+        if (draggedKeyElement) { draggedKeyElement.classList.remove('active'); }
+        draggedNote = null;
+        draggedKeyElement = null;
+    };
+
+    const switchDraggedNote = (note, keyElement) => {
+        if (draggedNote === note) return;
+        clearDraggedNote();
+        startNote(note);
+        keyElement.classList.add('active');
+        draggedNote = note;
+        draggedKeyElement = keyElement;
+    };
+
+    const handleGlobalMouseUp = () => {
+        if (!mouseIsDownOnPiano) return;
+        mouseIsDownOnPiano = false;
+        clearDraggedNote();
+    };
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('blur', handleGlobalMouseUp);
+
     let whiteKeyIndex = 0;
     NOTES.forEach(note => {
         const keyElement = document.createElement('div'); const isBlackKey = note.includes('#'); const notations = getSargamNotation(note);
@@ -298,11 +328,31 @@ if (pianoContainer) { /* ... no change ... */
         }
         const indianLabel = document.createElement('span'); indianLabel.classList.add('indian-note'); indianLabel.textContent = notations.indian; keyElement.appendChild(indianLabel);
         const westernLabel = document.createElement('span'); westernLabel.classList.add('western-note'); westernLabel.textContent = notations.western; keyElement.appendChild(westernLabel);
-        const handlePress = (e) => { e.preventDefault(); startNote(note); keyElement.classList.add('active'); };
-        const handleRelease = (e) => { if (e && (e.target === keyElement || keyElement.contains(e.target)) && activeNotes[note]) { e.preventDefault(); stopNote(note); keyElement.classList.remove('active'); } };
-        const handleLeave = (e) => { if (activeNotes[note]) { stopNote(note); keyElement.classList.remove('active'); } }
-        keyElement.addEventListener('mousedown', handlePress); keyElement.addEventListener('mouseup', handleRelease); keyElement.addEventListener('mouseleave', handleLeave);
-        keyElement.addEventListener('touchstart', handlePress, { passive: false }); keyElement.addEventListener('touchend', handleRelease, { passive: false }); keyElement.addEventListener('touchcancel', handleRelease, { passive: false });
+        const handleMousePress = (e) => {
+            e.preventDefault();
+            mouseIsDownOnPiano = true;
+            switchDraggedNote(note, keyElement);
+        };
+        const handleMouseEnter = (e) => {
+            if (!mouseIsDownOnPiano || (e.buttons & 1) !== 1) return;
+            e.preventDefault();
+            switchDraggedNote(note, keyElement);
+        };
+        const handleTouchPress = (e) => {
+            e.preventDefault();
+            startNote(note);
+            keyElement.classList.add('active');
+        };
+        const handleTouchRelease = (e) => {
+            e.preventDefault();
+            if (activeNotes[note]) { stopNote(note); }
+            keyElement.classList.remove('active');
+        };
+        keyElement.addEventListener('mousedown', handleMousePress);
+        keyElement.addEventListener('mouseenter', handleMouseEnter);
+        keyElement.addEventListener('touchstart', handleTouchPress, { passive: false });
+        keyElement.addEventListener('touchend', handleTouchRelease, { passive: false });
+        keyElement.addEventListener('touchcancel', handleTouchRelease, { passive: false });
         pianoContainer.appendChild(keyElement);
         if (!isBlackKey) { whiteKeyIndex++; }
     });
