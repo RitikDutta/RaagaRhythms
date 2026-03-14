@@ -949,11 +949,76 @@ function runMemorialAnimation(splash, reduceMotion) {
     return totalDuration + delaySpread + 320;
 }
 
-function showMemorialSplash() {
+function initializePageAnimations() {
+    if (typeof gsap === "undefined") {
+        console.warn("GSAP not loaded. Animations will fall back to CSS where available.");
+        return;
+    }
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    gsap.from(".hero-copy > *", {
+        duration: 0.8,
+        y: 30,
+        opacity: 0,
+        ease: "power2.out",
+        stagger: 0.08,
+    });
+
+    gsap.from(".hero-player", {
+        duration: 0.9,
+        y: 40,
+        opacity: 0,
+        ease: "power2.out",
+        delay: 0.1,
+        clearProps: "transform",
+    });
+
+    gsap.from(".controls-panel", {
+        duration: 0.8,
+        y: 30,
+        opacity: 0,
+        ease: "power2.out",
+        scrollTrigger: {
+            trigger: ".controls-panel",
+            start: "top 85%",
+            toggleActions: "play none none none",
+        },
+    });
+
+    gsap.utils.toArray("#songs-container > section").forEach(function (section) {
+        gsap.from(section, {
+            duration: 0.7,
+            y: 40,
+            opacity: 0,
+            ease: "power1.out",
+            scrollTrigger: {
+                trigger: section,
+                start: "top 90%",
+                toggleActions: "play none none none",
+            },
+        });
+    });
+
+    gsap.from("footer", {
+        duration: 0.8,
+        y: 40,
+        opacity: 0,
+        ease: "power1.out",
+        scrollTrigger: {
+            trigger: "footer",
+            start: "top 90%",
+            toggleActions: "play none none none",
+        },
+    });
+}
+
+function showMemorialSplash(onComplete) {
     var splash = document.createElement("div");
     splash.className = "memorial-splash";
     splash.setAttribute("role", "status");
     splash.setAttribute("aria-live", "polite");
+    var hasCompleted = false;
 
     splash.innerHTML =
         '<div class="memorial-wind-layer" aria-hidden="true"></div>' +
@@ -971,13 +1036,24 @@ function showMemorialSplash() {
     var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var fallbackDuration = reduceMotion ? 2200 : 4800;
 
+    function finishSplash() {
+        if (hasCompleted) {
+            return;
+        }
+        hasCompleted = true;
+        if (splash.parentNode) {
+            splash.parentNode.removeChild(splash);
+        }
+        if (typeof onComplete === "function") {
+            onComplete();
+        }
+    }
+
     if (reduceMotion || typeof splash.animate !== "function") {
         setTimeout(function () {
             splash.classList.add("is-hidden");
             setTimeout(function () {
-                if (splash.parentNode) {
-                    splash.parentNode.removeChild(splash);
-                }
+                finishSplash();
             }, 950);
         }, fallbackDuration);
         return;
@@ -985,9 +1061,7 @@ function showMemorialSplash() {
 
     var lifetime = runMemorialAnimation(splash, reduceMotion);
     setTimeout(function () {
-        if (splash.parentNode) {
-            splash.parentNode.removeChild(splash);
-        }
+        finishSplash();
     }, lifetime);
 }
 
@@ -1005,75 +1079,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     updateNowPlayingDisplay();
-    showMemorialSplash();
-
-    // GSAP Animations (ensure GSAP and ScrollTrigger are loaded in HTML)
-    if (typeof gsap !== 'undefined') {
-        gsap.registerPlugin(ScrollTrigger);
-
-        // Hero Animation
-        gsap.from(".hero-copy > *", {
-            duration: 0.8,
-            y: 30,
-            opacity: 0,
-            ease: "power2.out",
-            stagger: 0.08
-        });
-
-        gsap.from(".hero-player", {
-            duration: 0.9,
-            y: 40,
-            opacity: 0,
-            ease: "power2.out",
-            delay: 0.1,
-            clearProps: "transform"
-        });
-
-        gsap.from(".controls-panel", {
-            duration: 0.8,
-            y: 30,
-            opacity: 0,
-            ease: "power2.out",
-            scrollTrigger: {
-                trigger: ".controls-panel",
-                start: "top 85%",
-                toggleActions: "play none none none",
-            }
-        });
-
-        // Raag Sections Staggered Animation
-        // GSAP handles this better than CSS --section-index if available
-        gsap.utils.toArray('#songs-container > section').forEach(section => {
-            gsap.from(section, {
-                duration: 0.7,
-                y: 40,
-                opacity: 0,
-                ease: "power1.out",
-                scrollTrigger: {
-                    trigger: section,
-                    start: "top 90%",
-                    toggleActions: "play none none none",
-                    // markers: true, // For debugging
-                }
-            });
-        });
-
-        // Footer Animation
-        gsap.from("footer", {
-            duration: 0.8,
-            y: 40,
-            opacity: 0,
-            ease: "power1.out",
-            scrollTrigger: {
-                trigger: "footer",
-                start: "top 90%",
-                toggleActions: "play none none none",
-            }
-        });
-    } else {
-        console.warn("GSAP not loaded. Animations will fall back to CSS where available.");
-    }
-
-    // Initial fetch of songs
     fetchSongs();
+    showMemorialSplash(initializePageAnimations);
 });
