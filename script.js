@@ -657,6 +657,340 @@ function playNotes(input, delay = 300) {
     playSequenceAtIndex(0);
 }
 
+function randomRange(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+function createMemorialFlowerElement(config) {
+    var flower = document.createElement("span");
+    flower.className = "memorial-flower";
+    flower.style.setProperty("--rest-x", config.x || "50%");
+    flower.style.setProperty("--rest-y", config.y || "50%");
+    flower.style.setProperty("--size", config.size + "px");
+    flower.style.animation = "none";
+
+    for (var i = 0; i < 5; i++) {
+        var petal = document.createElement("span");
+        petal.className = "memorial-flower-petal";
+        petal.style.setProperty("--petal-rot", (i * 72 + randomRange(-9, 9)) + "deg");
+        flower.appendChild(petal);
+    }
+
+    var core = document.createElement("span");
+    core.className = "memorial-flower-core";
+    flower.appendChild(core);
+
+    return flower;
+}
+
+function animateMemorialParticle(el, config) {
+    if (!el || typeof el.animate !== "function") {
+        return;
+    }
+
+    var appearStop = config.appearStop;
+    var holdStop = typeof config.holdStop === "number" ? config.holdStop : config.driftStop;
+    var driftStop = config.driftStop;
+    var restRot = config.restRot || 0;
+    var windupRot = config.windupRot || 0;
+
+    var startTransform = "translate(-50%, -50%) rotate(" + restRot + "deg) scale(" + config.startScale + ")";
+    var holdTransform = "translate(-50%, -50%) rotate(" + restRot + "deg) scale(" + config.midScale + ")";
+    var driftTransform =
+        "translate(calc(-50% + " +
+        config.windupX +
+        "px), calc(-50% + " +
+        config.windupY +
+        "px)) rotate(" +
+        (restRot + windupRot) +
+        "deg) scale(" +
+        config.midScale +
+        ")";
+    var exitTransform =
+        "translate(calc(-50% + " +
+        config.exitX +
+        "px), calc(-50% + " +
+        config.exitY +
+        "px)) rotate(" +
+        config.exitRot +
+        "deg) scale(" +
+        config.endScale +
+        ")";
+
+    el.animate(
+        [
+            { offset: 0, opacity: 0, transform: startTransform, filter: "blur(" + config.startBlur + "px)" },
+            { offset: appearStop, opacity: config.opacity, transform: holdTransform, filter: "blur(" + config.midBlur + "px)" },
+            { offset: holdStop, opacity: config.opacity, transform: holdTransform, filter: "blur(" + config.midBlur + "px)" },
+            { offset: driftStop, opacity: config.opacity * 0.98, transform: driftTransform, filter: "blur(" + config.midBlur + "px)" },
+            { offset: 1, opacity: 0, transform: exitTransform, filter: "blur(" + config.endBlur + "px)" },
+        ],
+        {
+            duration: config.duration,
+            delay: config.delay,
+            easing: config.easing,
+            fill: "forwards",
+        }
+    );
+}
+
+function runMemorialAnimation(splash, reduceMotion) {
+    var windLayer = splash.querySelector(".memorial-wind-layer");
+    var dustLayer = splash.querySelector(".memorial-dust-layer");
+    var content = splash.querySelector(".memorial-splash-content");
+
+    if (!windLayer || !dustLayer || !content) {
+        return 0;
+    }
+
+    var entryDuration = reduceMotion ? 480 : 980;
+    var pauseDuration = reduceMotion ? 1400 : 6000;
+    var exitLeadDuration = reduceMotion ? 120 : 280;
+    var exitDuration = reduceMotion ? 620 : 1680;
+    var totalDuration = entryDuration + pauseDuration + exitLeadDuration + exitDuration;
+    var delaySpread = reduceMotion ? 90 : 220;
+    var entryStop = entryDuration / totalDuration;
+    var holdStop = (entryDuration + pauseDuration) / totalDuration;
+    var driftStop = (entryDuration + pauseDuration + exitLeadDuration) / totalDuration;
+    var appearStop = entryStop * (reduceMotion ? 0.82 : 0.7);
+    var splashEntryStop = entryStop * (reduceMotion ? 0.68 : 0.55);
+    var motionEase = "cubic-bezier(0.2, 0.72, 0.24, 1)";
+    var contentRect = content.getBoundingClientRect();
+    var particleOriginX = Math.max(0, contentRect.left + Math.min(contentRect.width * 0.03, 20));
+    var particleOriginY = contentRect.top + contentRect.height * 0.5;
+    var particleOriginXValue = particleOriginX + "px";
+    var particleOriginYValue = particleOriginY + "px";
+
+    var flowerCount = reduceMotion ? 4 : 8;
+    var petalCount = reduceMotion ? 10 : 24;
+    var fragmentCount = reduceMotion ? 4 : 12;
+    var dustCount = reduceMotion ? 10 : 24;
+
+    for (var f = 0; f < flowerCount; f++) {
+        var flower = createMemorialFlowerElement({
+            size: randomRange(16, 27),
+            x: particleOriginXValue,
+            y: particleOriginYValue,
+        });
+        windLayer.appendChild(flower);
+
+        animateMemorialParticle(flower, {
+            appearStop: appearStop,
+            holdStop: holdStop,
+            driftStop: driftStop,
+            restRot: 0,
+            windupRot: randomRange(6, 22),
+            windupX: randomRange(10, 28),
+            windupY: randomRange(-14, 10),
+            exitX: randomRange(340, 760),
+            exitY: randomRange(-140, 110),
+            exitRot: randomRange(140, 420),
+            startScale: 0.84,
+            midScale: 1,
+            endScale: 0.72,
+            opacity: 0.84,
+            startBlur: 1.2,
+            midBlur: 0.15,
+            endBlur: 1.8,
+            duration: totalDuration + randomRange(-140, 160),
+            delay: randomRange(0, delaySpread),
+            easing: motionEase,
+        });
+    }
+
+    for (var p = 0; p < petalCount; p++) {
+        var petal = document.createElement("span");
+        petal.className = "memorial-petal";
+        petal.style.setProperty("--rest-x", particleOriginXValue);
+        petal.style.setProperty("--rest-y", particleOriginYValue);
+        petal.style.setProperty("--size", randomRange(8, 15) + "px");
+        petal.style.animation = "none";
+        windLayer.appendChild(petal);
+
+        animateMemorialParticle(petal, {
+            appearStop: appearStop,
+            holdStop: holdStop,
+            driftStop: driftStop,
+            restRot: randomRange(-120, 120),
+            windupRot: randomRange(-72, 72),
+            windupX: randomRange(12, 42),
+            windupY: randomRange(-18, 14),
+            exitX: randomRange(420, 980),
+            exitY: randomRange(-180, 150),
+            exitRot: randomRange(220, 640),
+            startScale: 0.76,
+            midScale: 1,
+            endScale: 0.46,
+            opacity: 0.68,
+            startBlur: 1.1,
+            midBlur: 0.3,
+            endBlur: 1.8,
+            duration: totalDuration + randomRange(-180, 180),
+            delay: randomRange(0, delaySpread),
+            easing: motionEase,
+        });
+    }
+
+    for (var g = 0; g < fragmentCount; g++) {
+        var fragment = document.createElement("span");
+        fragment.className = "memorial-fragment";
+        fragment.style.setProperty("--rest-x", particleOriginXValue);
+        fragment.style.setProperty("--rest-y", particleOriginYValue);
+        fragment.style.setProperty("--frag-w", randomRange(8, 22) + "px");
+        fragment.style.setProperty("--frag-h", randomRange(3, 9) + "px");
+        fragment.style.animation = "none";
+        windLayer.appendChild(fragment);
+
+        animateMemorialParticle(fragment, {
+            appearStop: appearStop,
+            holdStop: holdStop,
+            driftStop: driftStop,
+            restRot: randomRange(-26, 26),
+            windupRot: randomRange(-28, 28),
+            windupX: randomRange(8, 24),
+            windupY: randomRange(-10, 10),
+            exitX: randomRange(280, 620),
+            exitY: randomRange(-120, 120),
+            exitRot: randomRange(120, 280),
+            startScale: 0.74,
+            midScale: 1,
+            endScale: 0.54,
+            opacity: 0.38,
+            startBlur: 1,
+            midBlur: 0.3,
+            endBlur: 1.6,
+            duration: totalDuration + randomRange(-150, 150),
+            delay: randomRange(0, delaySpread),
+            easing: motionEase,
+        });
+    }
+
+    for (var d = 0; d < dustCount; d++) {
+        var dust = document.createElement("span");
+        dust.className = "memorial-dust";
+        dust.style.setProperty("--x", particleOriginXValue);
+        dust.style.setProperty("--y", particleOriginYValue);
+        dust.style.setProperty("--size", randomRange(2, 6) + "px");
+        dust.style.animation = "none";
+        dustLayer.appendChild(dust);
+
+        animateMemorialParticle(dust, {
+            appearStop: appearStop,
+            holdStop: holdStop,
+            driftStop: driftStop,
+            restRot: 0,
+            windupRot: 0,
+            windupX: randomRange(6, 20),
+            windupY: randomRange(-8, 8),
+            exitX: randomRange(220, 520),
+            exitY: randomRange(-110, 110),
+            exitRot: randomRange(0, 180),
+            startScale: 0.42,
+            midScale: 0.5,
+            endScale: 0.24,
+            opacity: 0.2,
+            startBlur: 0.9,
+            midBlur: 0.55,
+            endBlur: 1.2,
+            duration: totalDuration + randomRange(-140, 140),
+            delay: randomRange(0, delaySpread),
+            easing: motionEase,
+        });
+    }
+
+    if (typeof content.animate === "function") {
+        content.style.opacity = "0";
+        content.style.transform = "translateY(14px) scale(0.985)";
+        content.style.filter = "blur(1.6px)";
+
+        content.animate(
+            [
+                { offset: 0, opacity: 0, transform: "translateX(0) translateY(14px) scale(0.985)", filter: "blur(1.6px)" },
+                { offset: entryStop, opacity: 1, transform: "translateX(0) translateY(0) scale(1)", filter: "blur(0px)" },
+                { offset: holdStop, opacity: 1, transform: "translateX(0) translateY(0) scale(1)", filter: "blur(0px)" },
+                { offset: driftStop, opacity: 0.985, transform: "translateX(6px) translateY(-1px) scale(0.998)", filter: "blur(0.12px)" },
+                { offset: 1, opacity: 0, transform: "translateX(54px) translateY(-10px) scale(0.972)", filter: "blur(2.2px)" },
+            ],
+            { duration: totalDuration, easing: motionEase, fill: "forwards" }
+        );
+
+        content.querySelectorAll(".memorial-ornament, .memorial-splash-prefix, .memorial-splash-name, .memorial-splash-years, .memorial-splash-note").forEach(function (el) {
+            el.style.opacity = "0";
+            el.style.transform = "translateY(8px)";
+            el.style.filter = "blur(1.4px)";
+
+            el.animate(
+                [
+                    { offset: 0, opacity: 0, transform: "translateX(0) translateY(8px)", filter: "blur(1.4px)" },
+                    { offset: entryStop, opacity: 1, transform: "translateX(0) translateY(0)", filter: "blur(0px)" },
+                    { offset: holdStop, opacity: 1, transform: "translateX(0) translateY(0)", filter: "blur(0px)" },
+                    { offset: driftStop, opacity: 0.98, transform: "translateX(4px)", filter: "blur(0.08px)" },
+                    { offset: 1, opacity: 0, transform: "translateX(42px)", filter: "blur(1.8px)" },
+                ],
+                { duration: totalDuration, easing: motionEase, fill: "forwards" }
+            );
+        });
+    }
+
+    if (typeof splash.animate === "function") {
+        splash.style.opacity = "0";
+        splash.animate(
+            [
+                { offset: 0, opacity: 0 },
+                { offset: splashEntryStop, opacity: 1 },
+                { offset: holdStop, opacity: 1 },
+                { offset: driftStop, opacity: 0.985 },
+                { offset: 1, opacity: 0 },
+            ],
+            { duration: totalDuration + 220, easing: motionEase, fill: "forwards" }
+        );
+    }
+
+    return totalDuration + delaySpread + 320;
+}
+
+function showMemorialSplash() {
+    var splash = document.createElement("div");
+    splash.className = "memorial-splash";
+    splash.setAttribute("role", "status");
+    splash.setAttribute("aria-live", "polite");
+
+    splash.innerHTML =
+        '<div class="memorial-wind-layer" aria-hidden="true"></div>' +
+        '<div class="memorial-splash-content">' +
+        '<div class="memorial-dust-layer" aria-hidden="true"></div>' +
+        '<div class="memorial-ornament" aria-hidden="true"><span></span></div>' +
+        '<p class="memorial-splash-prefix">In loving memory of</p>' +
+        '<p class="memorial-splash-name">Lata Mangeshkar</p>' +
+        '<p class="memorial-splash-years">1929 - 2022</p>' +
+        '<p class="memorial-splash-note">The Nightingale of India, forever alive in every heart she touched.</p>' +
+        "</div>";
+
+    document.body.appendChild(splash);
+
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var fallbackDuration = reduceMotion ? 2200 : 4800;
+
+    if (reduceMotion || typeof splash.animate !== "function") {
+        setTimeout(function () {
+            splash.classList.add("is-hidden");
+            setTimeout(function () {
+                if (splash.parentNode) {
+                    splash.parentNode.removeChild(splash);
+                }
+            }, 950);
+        }, fallbackDuration);
+        return;
+    }
+
+    var lifetime = runMemorialAnimation(splash, reduceMotion);
+    setTimeout(function () {
+        if (splash.parentNode) {
+            splash.parentNode.removeChild(splash);
+        }
+    }, lifetime);
+}
+
 
 // DOMContentLoaded - Primary execution after HTML is parsed
 document.addEventListener('DOMContentLoaded', function() {
@@ -671,6 +1005,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     updateNowPlayingDisplay();
+    showMemorialSplash();
 
     // GSAP Animations (ensure GSAP and ScrollTrigger are loaded in HTML)
     if (typeof gsap !== 'undefined') {
