@@ -8,6 +8,9 @@ u can see the read only version of database [here](https://docs.google.com/sprea
 
 ## Features
 
+- **Switchable Interfaces:** The future experience is served at the app root, while the preserved archive/player remains available through the New/Legacy switch at legacy.html.
+- **CREPE Riyaz Studio:** Analyse microphone or shared-tab audio locally with the bundled TensorFlow.js and CREPE model. Analyze mode keeps the continuous contour view; Practice mode scores each phrase point from left to right and restarts after one second of silence.
+- **Interactive Practice Tools:** Choose a Sa, audition notes on the Raaga Piano, filter the raag library, build a practice focus, and save a local session snapshot.
 - **Organized Sections:** Navigate through dedicated sections for each raga, including popular ones like Raag Yaman, Raag Bhairavi, and more.
 - **Song Collection:** Discover a treasury of songs that exemplify the essence and beauty of each raga.
 - **Embedded YouTube Player:** Engage with music like never before. Click on a song title to dynamically load its YouTube video using an embedded player, allowing you to experience the melodies directly on the webpage.
@@ -69,5 +72,3 @@ Journey deeper into each composition with intricate details. Explore the fabric 
 Your contributions are integral to enhancing this auditory odyssey. Whether you have a new raaga to share or suggestions for enriching the experience, feel free to create a pull request. Bug reports and other improvements are equally appreciated.
 
 Dive into the captivating realm of Indian classical music with RaagaRhythms. Immerse yourself in the soulful melodies, unlock the stories behind the notes, and explore a legacy that transcends time. Happy listening!
-
-
