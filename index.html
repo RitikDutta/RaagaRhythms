@@ -1,121 +1,296 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <link rel="icon" type="image/ico" href="images/favicon.ico" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/ScrollTrigger.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore Indian classical raagas and practise their melodic movement with real-time CREPE pitch analysis."
+    />
+    <link rel="icon" type="image/ico" href="./images/favicon.ico" />
+    <link rel="stylesheet" href="./future-design.css" />
+    <link rel="stylesheet" href="./future.css" />
+    <link rel="stylesheet" href="./ui-switcher.css" />
+    <title>RaagaRhythms · Listen deeper</title>
+  </head>
+  <body class="future-ui">
+    <a class="future-skip-link" href="#studio">Skip to Riyaz Studio</a>
 
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="Explore a curated archive of Indian classical raagas, songs, and insights. Listen instantly with the embedded player." />
-        <link rel="stylesheet" href="./style.css" />
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="RaagaRhythms home">RaagaRhythms</a>
+      <nav aria-label="Primary navigation">
+        <a class="active" href="#explore">Explore</a>
+        <a href="#learn">Learn</a>
+        <a href="#studio">Riyaz Studio</a>
+        <a href="#journal">Journal</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-button" id="openSearch" type="button" aria-label="Search raagas">⌕</button>
+        <nav class="ui-version-switch" aria-label="Choose interface">
+          <a class="active" href="./index.html" aria-current="page" data-ui-choice="future">New</a>
+          <a href="./legacy.html" data-ui-choice="legacy">Legacy</a>
+        </nav>
+      </div>
+    </header>
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-
-        <title>RaagaRhythms</title>
-    </head>
-    <body>
-        <a class="skip-link" href="#songs-wrapper">Skip to songs</a>
-
-        <header class="hero">
-            <div class="hero-copy">
-                <span class="eyebrow">Indian Classical Music Archive</span>
-                <h1 class="header">Raaga<span class="header2">Rhythms</span></h1>
-                <p class="hero-subtitle">
-                    Immerse yourself in a living library of ragas, compositions, and lyrical detail. Tap a song to play, then explore its
-                    structure, notes, and meanings at your own pace.
-                </p>
-                <div class="hero-actions">
-                    <button class="primary-btn" id="scrollToSongs" type="button">Explore raagas</button>
-                    <a class="secondary-btn" href="piano.html" target="_blank" rel="noreferrer noopener">Open Raaga Piano</a>
-                </div>
-                <div class="hero-hint">Tip: tap any raag title to reveal its mood, character, and traditional time of day.</div>
-            </div>
-            <div class="hero-player">
-                <div id="video-container">
-                    <div id="YouTube-player" class="yt_con"></div>
-                </div>
-                <div class="player-status" aria-live="polite">
-                    <span class="player-label">Now playing</span>
-                    <span class="player-title" data-now-playing="title">Select a song</span>
-                    <span class="player-meta" data-now-playing="meta">Pick a track to begin listening.</span>
-                </div>
-            </div>
-        </header>
-
-        <main id="content">
-            <input id="YouTube-video-id" type="hidden" value="HBuGBlFRD38" />
-
-            <section class="controls-panel">
-                <div class="controls-header">
-                    <h2 class="section-title">Browse the archive</h2>
-                    <p class="section-subtitle">Search across ragas, singers, composers, and lyricists.</p>
-                </div>
-                <div class="controls-grid">
-                    <div class="search-field">
-                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                        <input id="searchInput" type="search" placeholder="Search songs, singers, composers..." autocomplete="off" />
-                    </div>
-                    <div class="select-field">
-                        <label class="sr-only" for="raagFilter">Filter by raag</label>
-                        <select id="raagFilter">
-                            <option value="all">All raagas</option>
-                        </select>
-                    </div>
-                    <button class="ghost-btn" id="clearFilters" type="button">Clear</button>
-                    <div class="results-count" id="resultsCount" role="status">Loading songs...</div>
-                </div>
-                <div id="raagNav" class="raag-nav" aria-label="Raag quick links"></div>
-            </section>
-
-            <div id="songs-wrapper">
-                <div id="songs-container"></div>
-                <div id="noResults" class="no-results" hidden>No songs match your search. Try clearing filters.</div>
-            </div>
-        </main>
-
-        <div class="music-controls">
-            <div class="now-playing" aria-live="polite">
-                <span class="now-playing-label">Now playing</span>
-                <span class="now-playing-title" data-now-playing="title">Select a song</span>
-                <span class="now-playing-meta" data-now-playing="meta">Pick a track to begin listening.</span>
-            </div>
-            <div class="control-buttons">
-                <button onclick="youTubePlayerPlay();" aria-label="Play" title="Play">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button onclick="youTubePlayerPause();" aria-label="Pause" title="Pause">
-                    <i class="fas fa-pause"></i>
-                </button>
-                <button onclick="youTubePlayerStop();" aria-label="Stop" title="Stop">
-                    <i class="fas fa-stop"></i>
-                </button>
-                <label class="toggle-slider" for="toggleSlider" title="Pin mini player">
-                    <input type="checkbox" id="toggleSlider" onchange="toggleWidth()" aria-label="Pin mini player" />
-                    <span class="slider" aria-hidden="true"></span>
-                    <span class="toggle-text"><i class="fa-solid fa-thumbtack" aria-hidden="true"></i> Pin</span>
-                </label>
-            </div>
+    <main>
+      <section class="hero page-shell" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow">Indian classical music, made visible</p>
+          <h1>Listen deeper.<br />Sing with intention.</h1>
+          <p class="hero-text">Explore raagas, understand their soul, and elevate your voice through mindful, visual practice.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#explore">Explore Raagas</a>
+            <a class="button secondary" href="#studio">Open Riyaz Studio</a>
+          </div>
         </div>
 
-        <footer>
-            <p>Designed and developed by <span class="developer">Ritik Dutta</span></p>
-            <div class="social-icons">
-                <a href="https://github.com/ritikdutta" target="_blank" rel="noreferrer noopener" aria-label="GitHub">
-                    <i class="fa-brands fa-github"></i>
-                </a>
-                <a href="https://www.linkedin.com/in/ritik-dutta-6037a6173/" target="_blank" rel="noreferrer noopener" aria-label="LinkedIn">
-                    <i class="fa-brands fa-linkedin"></i>
-                </a>
-                <a href="mailto:ritikduttagd@gmail.com?subject=Hello%20There&amp;body=I%20would%20like%20to%20get%20in%20touch%20with%20you" target="_blank" rel="noreferrer noopener" aria-label="Email">
-                    <i class="fa-solid fa-envelope"></i>
-                </a>
-                <a href="piano.html" target="_blank" rel="noreferrer noopener" aria-label="Raaga Piano">
-                    <i class="fa-regular fa-keyboard"></i>
-                </a>
+        <article class="raag-hero-card" aria-label="Featured Raag Yaman">
+          <div class="raag-card-glow"></div>
+          <div class="moon"></div>
+          <div class="dome dome-one"></div>
+          <div class="dome dome-two"></div>
+          <div class="dome dome-three"></div>
+          <div class="raag-card-content">
+            <p class="card-kicker">Now exploring</p>
+            <h2>Yaman</h2>
+            <p>An evening raag of devotion and luminous calm</p>
+            <div class="player-row">
+              <button class="play-button" id="previewButton" type="button" aria-label="Play Yaman preview">▶</button>
+              <div class="progress-wrap">
+                <div class="progress-line"><span id="previewProgress" style="width: 24%"></span></div>
+                <div class="time-row"><span id="previewStatus">Tap to hear the swaras</span><span>08:32</span></div>
+              </div>
             </div>
-        </footer>
+            <div class="raag-tags"><span>Kalyan Thaat</span><span>Evening</span><span>Teevra Ma</span></div>
+          </div>
+        </article>
+      </section>
 
-        <script src="./script.js"></script>
-    </body>
+      <section class="studio-section page-shell" id="studio">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Living pitch studio</p>
+            <h2>See the phrase. Then become it.</h2>
+          </div>
+          <p>Choose a musical idea, set your Sa, and sing. Your live pitch appears against the raag’s intended movement—not just the nearest Western note.</p>
+        </div>
+
+        <div class="studio-toolbar">
+          <div class="mode-tabs" role="tablist" aria-label="Practice phrase">
+            <button class="selected" data-practice-mode="pakad" type="button" role="tab" aria-selected="true"><span>⌁</span>Pakad</button>
+            <button data-practice-mode="aaroh" type="button" role="tab" aria-selected="false"><span>↗</span>Aaroh–Avroh</button>
+            <button data-practice-mode="bandish" type="button" role="tab" aria-selected="false"><span>▥</span>Bandish</button>
+            <button data-practice-mode="meend" type="button" role="tab" aria-selected="false"><span>∿</span>Meend</button>
+          </div>
+          <div class="studio-options">
+            <div class="graph-mode-control" role="tablist" aria-label="Pitch graph mode">
+              <button class="selected" data-graph-mode="analyze" type="button" role="tab" aria-selected="true">Analyze</button>
+              <button data-graph-mode="practice" type="button" role="tab" aria-selected="false">Practice</button>
+            </div>
+            <div class="sa-control">
+              <label for="sa-root">Your Sa</label>
+              <select id="sa-root">
+                <option value="0">C · 261.6 Hz</option>
+                <option value="1">C♯ · 277.2 Hz</option>
+                <option value="2">D · 293.7 Hz</option>
+                <option value="3">D♯ · 311.1 Hz</option>
+                <option value="4">E · 329.6 Hz</option>
+                <option value="5">F · 349.2 Hz</option>
+                <option value="6">F♯ · 370.0 Hz</option>
+                <option value="7">G · 392.0 Hz</option>
+                <option value="8">G♯ · 415.3 Hz</option>
+                <option value="9">A · 440.0 Hz</option>
+                <option value="10">A♯ · 466.2 Hz</option>
+                <option value="11">B · 493.9 Hz</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="pitch-stage" id="pitchStage" data-graph-mode="analyze">
+          <div class="stage-topline">
+            <div><span class="live-dot" id="liveDot" data-live="false"></span><span id="inputStatus">Ready to listen</span></div>
+            <p><strong id="practiceTitle">Yaman · Pakad</strong><span id="practiceHint">Ni Re Ga · Re Sa · Pa Mā Ga Re Sa</span></p>
+          </div>
+
+          <div class="graph-wrap">
+            <img class="sitar-asset" src="./future_phase/public/sitar-graph-instrument.png" alt="Decorative tanpura forming the beginning of the pitch line" />
+            <div class="graph-canvas">
+              <div class="swara-grid analysis-grid" aria-hidden="true">
+                <span>Sa</span><span>Re</span><span>Ga</span><span>Mā</span><span>Pa</span><span>Dha</span><span>Ni</span><span>Sa′</span>
+              </div>
+              <svg viewBox="0 0 760 240" preserveAspectRatio="none" role="img" aria-label="Target phrase and live vocal pitch graph">
+                <defs>
+                  <linearGradient id="targetGlow" x1="0" x2="1"><stop stop-color="#d16738"></stop><stop offset="1" stop-color="#245b57"></stop></linearGradient>
+                </defs>
+                <path class="target-shadow" id="targetShadow"></path>
+                <path class="target-path" id="targetPath"></path>
+                <path class="practice-progress-path" id="practiceProgressPath"></path>
+                <path class="live-path" id="livePath"></path>
+                <g class="practice-guides" id="practiceGuides" aria-hidden="true"></g>
+                <g class="practice-points" id="practicePoints" aria-hidden="true"></g>
+                <circle class="practice-live-marker" id="practiceLiveMarker" r="5" hidden></circle>
+              </svg>
+              <div class="practice-progress-copy" id="practiceProgressCopy" hidden>
+                <span id="practiceStep">Ready</span>
+                <strong id="practiceTargetLabel">Sing the first note to begin</strong>
+              </div>
+            </div>
+            <aside class="note-readout" aria-live="polite">
+              <span class="wave-icon">∿</span>
+              <div>
+                <strong><span id="currentSwara">Sa</span> <i>•</i> <span id="currentFrequency">C</span></strong>
+                <span id="currentPitchMeta">waiting for pitch</span>
+              </div>
+            </aside>
+          </div>
+
+          <div class="studio-footer">
+            <div class="input-actions" id="idleActions">
+              <button class="button primary compact" id="startMic" type="button">Use microphone</button>
+              <button class="button secondary compact" id="startTab" type="button">Share tab audio</button>
+              <button class="text-button" id="startDemo" type="button">Try a live demo →</button>
+            </div>
+            <div class="input-actions" id="activeActions" hidden>
+              <button class="button stop compact" id="stopListening" type="button">Stop listening</button>
+            </div>
+            <div class="accuracy">
+              <span id="accuracyLabel">Pitch steadiness</span><strong id="accuracyValue">0%</strong>
+              <div><i id="accuracyFill" style="width: 0%"></i></div>
+            </div>
+          </div>
+          <div class="engine-status" id="engineStatus" role="status">
+            <span class="engine-badge">CREPE</span>
+            <span id="engineMessage">Local neural pitch model loads when you start listening.</span>
+            <span id="confidenceValue">Confidence —</span>
+          </div>
+        </div>
+
+        <div class="keyboard-panel">
+          <div class="keyboard-copy"><span>Find your Sa</span><p>Play notes, match comfortably, then set that pitch above.</p></div>
+          <div class="piano" aria-label="Playable one octave keyboard">
+            <button class="white-key" data-piano-note="0" type="button" aria-label="Play Sa"><span>S</span></button>
+            <button class="white-key" data-piano-note="2" type="button" aria-label="Play Re"><span>R</span></button>
+            <button class="white-key" data-piano-note="4" type="button" aria-label="Play Ga"><span>G</span></button>
+            <button class="white-key" data-piano-note="5" type="button" aria-label="Play Ma"><span>M</span></button>
+            <button class="white-key" data-piano-note="7" type="button" aria-label="Play Pa"><span>P</span></button>
+            <button class="white-key" data-piano-note="9" type="button" aria-label="Play Dha"><span>D</span></button>
+            <button class="white-key" data-piano-note="11" type="button" aria-label="Play Ni"><span>N</span></button>
+            <button class="white-key" data-piano-note="12" type="button" aria-label="Play high Sa"><span>S′</span></button>
+            <button class="black-key black-1" data-piano-note="1" type="button" aria-label="Play komal Re"></button>
+            <button class="black-key black-2" data-piano-note="3" type="button" aria-label="Play komal Ga"></button>
+            <button class="black-key black-3" data-piano-note="6" type="button" aria-label="Play teevra Ma"></button>
+            <button class="black-key black-4" data-piano-note="8" type="button" aria-label="Play komal Dha"></button>
+            <button class="black-key black-5" data-piano-note="10" type="button" aria-label="Play komal Ni"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="explore-section" id="explore">
+        <div class="page-shell">
+          <div class="explore-heading">
+            <div>
+              <p class="eyebrow">Raag library</p>
+              <h2>A universe of moods,<br />one swara at a time.</h2>
+            </div>
+            <div class="time-filter" aria-label="Filter raagas by time">
+              <button class="selected" data-time-filter="All" type="button" aria-pressed="true">All</button>
+              <button data-time-filter="Morning" type="button" aria-pressed="false">Morning</button>
+              <button data-time-filter="Evening" type="button" aria-pressed="false">Evening</button>
+              <button data-time-filter="Night" type="button" aria-pressed="false">Night</button>
+            </div>
+          </div>
+
+          <div class="raag-library-layout">
+            <div class="raag-grid" id="raagGrid"></div>
+            <article class="raag-detail-panel" id="raagDetail" aria-live="polite"></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="concept-section page-shell" id="learn">
+        <div class="section-heading concept-heading">
+          <div><p class="eyebrow">The grammar of expression</p><h2>Learn what lives<br />between the notes.</h2></div>
+          <p>Swaras tell you where the melody is. Ornamentation tells you how it moves. Each concept includes a visual gesture and a focused vocal exercise.</p>
+        </div>
+        <div class="concept-grid">
+          <article class="concept-card"><div class="concept-top"><span>01</span><b>∿</b></div><h3>Meend</h3><p>A continuous glide that connects two swaras without breaking the breath.</p><div class="concept-exercise"><span>Try it</span>Slide Sa → Ga in one smooth arc</div></article>
+          <article class="concept-card"><div class="concept-top"><span>02</span><b>≈</b></div><h3>Andolan</h3><p>A slow, deliberate oscillation around a swara that gives a raag its gravity.</p><div class="concept-exercise"><span>Try it</span>Hold komal Re and orbit gently</div></article>
+          <article class="concept-card"><div class="concept-top"><span>03</span><b>〰</b></div><h3>Gamak</h3><p>A forceful, controlled oscillation produced with clear rhythmic energy.</p><div class="concept-exercise"><span>Try it</span>Pulse Ga–Ma with equal weight</div></article>
+          <article class="concept-card"><div class="concept-top"><span>04</span><b>↝</b></div><h3>Kan swar</h3><p>A grace note touched briefly before arriving at the intended swara.</p><div class="concept-exercise"><span>Try it</span>Brush Re before settling on Ga</div></article>
+        </div>
+      </section>
+
+      <section class="plan-section">
+        <div class="page-shell plan-layout">
+          <div class="plan-copy">
+            <p class="eyebrow">Adaptive Riyaz path</p>
+            <h2>A meaningful 20 minutes,<br />made for today.</h2>
+            <p>Choose your focus and RaagaRhythms reshapes the session—from tuning your Sa to applying the phrase in a real musical context.</p>
+            <div class="goal-picker" aria-label="Choose practice goal">
+              <button class="selected" data-goal="Sur stability" type="button" aria-pressed="true">Sur stability</button>
+              <button data-goal="Raag fluency" type="button" aria-pressed="false">Raag fluency</button>
+              <button data-goal="Voice agility" type="button" aria-pressed="false">Voice agility</button>
+            </div>
+          </div>
+          <div class="practice-plan">
+            <div class="plan-header"><span>Today · <span id="plannerGoal">Sur stability</span></span><strong>20 min</strong></div>
+            <ol>
+              <li class="done"><span>01</span><div><strong>Arrive at your Sa</strong><p>Tanpura + long-note centering</p></div><b>3 min</b></li>
+              <li><span>02</span><div><strong>Steady the swaras</strong><p>Sa · Ga · Pa visual holds</p></div><b>5 min</b></li>
+              <li><span>03</span><div><strong><span data-selected-raag>Yaman</span> phrase lab</strong><p><span data-selected-concept>Meend</span> through the Pakad</p></div><b>8 min</b></li>
+              <li><span>04</span><div><strong>Listen back & reflect</strong><p>Compare target and recorded contour</p></div><b>4 min</b></li>
+            </ol>
+            <button class="button primary" id="beginRiyaz" type="button">Begin today’s Riyaz</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="journal-section page-shell" id="journal">
+        <div class="journal-card">
+          <div class="journal-copy">
+            <p class="eyebrow">Your practice journal</p>
+            <h2>Progress you can hear<br />and see.</h2>
+            <p>Save a snapshot of today’s Raag, goal, steadiness, and pitch contour locally on this device.</p>
+            <button class="button secondary" id="saveJournal" type="button">Save today’s session</button>
+          </div>
+          <div class="journal-stats">
+            <div><span>Current streak</span><strong>7 <i>days</i></strong><small>Personal best</small></div>
+            <div><span>This week</span><strong>84 <i>min</i></strong><small>+18% from last week</small></div>
+            <div><span>Last steadiness</span><strong id="journalAccuracy">—</strong><small id="journalSavedAt">Not saved yet</small></div>
+          </div>
+          <div class="week-chart" aria-label="Weekly practice chart"><span style="height:38%">M</span><span style="height:63%">T</span><span style="height:48%">W</span><span style="height:82%">T</span><span style="height:71%">F</span><span style="height:91%">S</span><span class="today" style="height:56%">S</span></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="page-shell footer-inner">
+        <div><a class="brand" href="#top">RaagaRhythms</a><p>Indian classical music, made visible.</p></div>
+        <div class="footer-links"><a href="#explore">Explore</a><a href="#learn">Learn</a><a href="#studio">Riyaz Studio</a><a href="#journal">Journal</a></div>
+        <span>Designed for curious ears.</span>
+      </div>
+    </footer>
+
+    <dialog class="search-dialog" id="searchDialog">
+      <form method="dialog" class="search-dialog-inner">
+        <div class="search-dialog-head">
+          <div><span>Find a raag</span><strong>Search by name, mood, time, or thaat</strong></div>
+          <button type="submit" aria-label="Close search">×</button>
+        </div>
+        <label class="search-input-wrap">
+          <span class="sr-only">Search raagas</span>
+          <input id="globalSearch" type="search" placeholder="Try “evening”, “Kalyan”, or “longing”" autocomplete="off" />
+        </label>
+        <div class="search-results" id="searchResults"></div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./ui-switcher.js"></script>
+    <script src="./crepe/tfjs-0.8.0.min.js"></script>
+    <script src="./future.js"></script>
+  </body>
 </html>
