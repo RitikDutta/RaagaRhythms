@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CREPE + Fast Swara Tracker</title>
+
+  <!-- Pinned ml5 version that still exposes ml5.pitchDetection(CREPE). -->
+  <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b10;
+      --panel: #11151d;
+      --panel2: #171c26;
+      --text: #f4f6fb;
+      --muted: #9aa6b6;
+      --good: #69e6a6;
+      --warn: #ffd166;
+      --bad: #ff6b6b;
+      --line: #293244;
+      --accent: #8ab4ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #151b29 0%, var(--bg) 40%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1100px, calc(100% - 28px));
+      margin: 28px auto 60px;
+    }
+
+    h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 42px); }
+    .subtitle { color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+      padding: 14px;
+      background: rgba(17, 21, 29, .92);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin-bottom: 14px;
+    }
+
+    button, input {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel2);
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    button { cursor: pointer; font-weight: 700; }
+    button.primary { background: #e7edf9; color: #0b0d12; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    label { display: grid; gap: 5px; color: var(--muted); font-size: 13px; }
+    input { width: 110px; }
+    input[type="range"] {
+      width: 190px;
+      padding: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .range-value {
+      min-width: 42px;
+      color: var(--text);
+      font-weight: 800;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 10px 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .card {
+      background: rgba(17, 21, 29, .94);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      min-height: 120px;
+    }
+
+    .hero { grid-column: span 2; min-height: 255px; display: grid; align-content: center; }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+    .swara { font-size: clamp(72px, 12vw, 150px); font-weight: 900; letter-spacing: -.05em; line-height: .95; }
+    .western { color: var(--muted); font-size: 20px; margin-top: 12px; }
+    .value { font-size: 32px; font-weight: 800; margin-top: 8px; }
+    .small { color: var(--muted); font-size: 13px; margin-top: 7px; line-height: 1.45; }
+
+    .meter {
+      height: 8px;
+      background: #0c0f15;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .meter > div { height: 100%; width: 0%; background: currentColor; transition: width 70ms linear; }
+
+    .wide { grid-column: 1 / -1; }
+    canvas {
+      width: 100%;
+      height: 220px;
+      display: block;
+      border-radius: 12px;
+      background: #0b0e14;
+      margin-top: 12px;
+    }
+
+    .history { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; margin-top: 12px; }
+    .chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel2);
+      font-weight: 700;
+    }
+    .chip:last-child { border-color: var(--accent); }
+
+    .debug {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .hero { grid-column: 1 / -1; }
+      .wide { grid-column: 1 / -1; }
+      .status { width: 100%; margin-left: 0; }
+      .debug { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>CREPE + Fast Swara Tracker</h1>
+    <div class="subtitle">
+      CREPE is the primary pitch detector. A short-window YIN tracker helps react to rapid note changes.
+      Note detection stays responsive, while the graph has independently adjustable visual smoothing.
+    </div>
+
+    <section class="toolbar">
+      <button id="startBtn" class="primary">Start microphone</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <label>
+        Sa frequency (Hz)
+        <input id="saHz" type="number" min="60" max="700" step="0.1" value="240" />
+      </label>
+      <button id="setSaBtn" disabled>Use current pitch as Sa</button>
+      <label>
+        Graph smoothing
+        <div class="range-row">
+          <input id="graphSmoothing" type="range" min="0" max="100" step="1" value="68" />
+          <span id="graphSmoothingValue" class="range-value">68%</span>
+        </div>
+      </label>
+      <div id="status" class="status">Idle</div>
+    </section>
+
+    <section class="grid">
+      <div class="card hero">
+        <div class="label">Detected swara</div>
+        <div id="swara" class="swara">—</div>
+        <div id="western" class="western">Sing into the microphone</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Pitch</div>
+        <div id="hz" class="value">— Hz</div>
+        <div id="cents" class="small">— cents from swara center</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Tracking quality</div>
+        <div id="quality" class="value">—</div>
+        <div class="meter"><div id="qualityBar"></div></div>
+        <div id="sourceText" class="small">Source: —</div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Live pitch contour · cents relative to Sa · visual smoothing only</div>
+        <canvas id="graph"></canvas>
+        <div class="debug">
+          <div>CREPE: <strong id="crepeHz">—</strong></div>
+          <div>YIN: <strong id="yinHz">—</strong></div>
+          <div>Mic RMS: <strong id="rms">—</strong></div>
+          <div>Audio rate: <strong id="sampleRate">—</strong></div>
+        </div>
+      </div>
+
+      <div class="card wide">
+        <div class="label">Detected note sequence</div>
+        <div id="history" class="history"></div>
+      </div>
+    </section>
+  </main>
+
+<script>
+(() => {
+  // Historical ml5 CREPE browser model. Keeping this URL external lets the app remain one HTML file.
+  const CREPE_MODEL_URL =
+    "https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/";
+
+  // Hindustani 12-tone mapping relative to tonic Sa.
+  // re/ga/dha/ni = komal, M^ = tivra Ma.
+  const SWARAS = ["Sa", "re", "Re", "ga", "Ga", "Ma", "M^", "Pa", "dha", "Dha", "ni", "Ni"];
+
+  const $ = (id) => document.getElementById(id);
+  const startBtn = $("startBtn");
+  const stopBtn = $("stopBtn");
+  const setSaBtn = $("setSaBtn");
+  const saInput = $("saHz");
+  const statusEl = $("status");
+  const graphSmoothing = $("graphSmoothing");
+  const graphSmoothingValue = $("graphSmoothingValue");
+  const canvas = $("graph");
+  const ctx = canvas.getContext("2d");
+
+  let running = false;
+  let audioContext = null;
+  let mediaStream = null;
+  let micSource = null;
+  let analyser = null;
+  let pitchDetector = null;
+  let timeData = null;
+
+  let lastCrepe = null;
+  let lastYin = null;
+  let previousYin = null;
+  let latestResult = null;
+  let smoothedCents = null;
+  let lastProcessAt = 0;
+
+  let currentNote = null;
+  let candidateNote = null;
+  const noteHistory = [];
+  const trace = [];
+
+  const MAX_TRACE = 360;
+  const MIN_HZ = 65;
+  const MAX_HZ = 1200;
+  const MIN_RMS = 0.008;
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function mod(n, m) { return ((n % m) + m) % m; }
+  function centsBetween(a, b) { return 1200 * Math.log2(a / b); }
+  function hzFromCents(sa, cents) { return sa * Math.pow(2, cents / 1200); }
+  function getSaHz() { return Number(saInput.value) || 240; }
+
+  function westernNote(freq) {
+    const midi = Math.round(69 + 12 * Math.log2(freq / 440));
+    const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const name = names[mod(midi, 12)];
+    const octave = Math.floor(midi / 12) - 1;
+    const center = 440 * Math.pow(2, (midi - 69) / 12);
+    const cents = centsBetween(freq, center);
+    return `${name}${octave} ${cents >= 0 ? "+" : ""}${cents.toFixed(0)}c`;
+  }
+
+  function swaraFromHz(freq) {
+    const sa = getSaHz();
+    const relativeCents = centsBetween(freq, sa);
+    const nearestStep = Math.round(relativeCents / 100);
+    const pc = mod(nearestStep, 12);
+    const octave = Math.floor(nearestStep / 12);
+    const error = relativeCents - nearestStep * 100;
+
+    let label = SWARAS[pc];
+    if (octave > 0) label += "↑".repeat(Math.min(2, octave));
+    if (octave < 0) label += "↓".repeat(Math.min(2, Math.abs(octave)));
+
+    return {
+      label,
+      key: `${pc}:${octave}`,
+      pc,
+      octave,
+      error,
+      relativeCents,
+      centerCents: nearestStep * 100
+    };
+  }
+
+  function rms(buffer) {
+    let sum = 0;
+    for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
+    return Math.sqrt(sum / buffer.length);
+  }
+
+  // Lightweight YIN implementation for fast local tracking.
+  // It is NOT used as the primary model; CREPE remains primary.
+  function yinPitch(buffer, sampleRate) {
+    const size = buffer.length;
+    const signalRms = rms(buffer);
+    if (signalRms < MIN_RMS) return { hz: null, rms: signalRms };
+
+    const minTau = Math.max(2, Math.floor(sampleRate / MAX_HZ));
+    const maxTau = Math.min(Math.floor(size / 2), Math.ceil(sampleRate / MIN_HZ));
+    const diff = new Float32Array(maxTau + 1);
+    const cmnd = new Float32Array(maxTau + 1);
+
+    for (let tau = minTau; tau <= maxTau; tau++) {
+      let d = 0;
+      const limit = size - tau;
+      for (let i = 0; i < limit; i++) {
+        const delta = buffer[i] - buffer[i + tau];
+        d += delta * delta;
+      }
+      diff[tau] = d;
+    }
+
+    cmnd[0] = 1;
+    let runningSum = 0;
+    for (let tau = 1; tau <= maxTau; tau++) {
+      runningSum += diff[tau];
+      cmnd[tau] = runningSum > 0 ? diff[tau] * tau / runningSum : 1;
+    }
+
+    const threshold = 0.12;
+    let tauEstimate = -1;
+
+    for (let tau = minTau; tau <= maxTau; tau++) {
+      if (cmnd[tau] < threshold) {
+        while (tau + 1 <= maxTau && cmnd[tau + 1] < cmnd[tau]) tau++;
+        tauEstimate = tau;
+        break;
+      }
+    }
+
+    if (tauEstimate < 0) {
+      let best = minTau;
+      for (let tau = minTau + 1; tau <= maxTau; tau++) {
+        if (cmnd[tau] < cmnd[best]) best = tau;
+      }
+      if (cmnd[best] > 0.28) return { hz: null, rms: signalRms };
+      tauEstimate = best;
+    }
+
+    // Parabolic interpolation around the YIN minimum.
+    let betterTau = tauEstimate;
+    if (tauEstimate > 1 && tauEstimate < maxTau) {
+      const s0 = cmnd[tauEstimate - 1];
+      const s1 = cmnd[tauEstimate];
+      const s2 = cmnd[tauEstimate + 1];
+      const denom = 2 * (2 * s1 - s2 - s0);
+      if (Math.abs(denom) > 1e-12) {
+        betterTau = tauEstimate + (s2 - s0) / denom;
+      }
+    }
+
+    const hz = sampleRate / betterTau;
+    if (!Number.isFinite(hz) || hz < MIN_HZ || hz > MAX_HZ) {
+      return { hz: null, rms: signalRms };
+    }
+
+    return { hz, rms: signalRms };
+  }
+
+  function geometricBlend(a, b, weightA) {
+    return Math.pow(2,
+      Math.log2(a) * weightA + Math.log2(b) * (1 - weightA)
+    );
+  }
+
+  function fusePitch() {
+    const now = performance.now();
+    const c = lastCrepe && now - lastCrepe.t < 250 ? lastCrepe : null;
+    const y = lastYin && now - lastYin.t < 120 ? lastYin : null;
+
+    if (!c && !y) return null;
+
+    if (c && y) {
+      const disagreement = Math.abs(centsBetween(c.hz, y.hz));
+
+      // If the two estimators agree, blend in log-frequency space.
+      if (disagreement <= 45) {
+        return {
+          hz: geometricBlend(c.hz, y.hz, 0.72),
+          source: "CREPE + YIN",
+          quality: 0.95
+        };
+      }
+
+      if (disagreement <= 80) {
+        return {
+          hz: geometricBlend(c.hz, y.hz, 0.82),
+          source: "CREPE + YIN",
+          quality: 0.82
+        };
+      }
+
+      // Strong octave disagreements are usually safer to leave to CREPE.
+      const octaveLike = Math.abs(disagreement - 1200) < 120 ||
+                         Math.abs(disagreement - 2400) < 120;
+      if (octaveLike) {
+        return { hz: c.hz, source: "CREPE", quality: 0.68 };
+      }
+
+      // Fast-transition path:
+      // if YIN has stabilized on a new local pitch while CREPE still disagrees,
+      // temporarily allow YIN to lead. This is what helps with rapid Sa/Ni changes.
+      let yinStable = false;
+      if (previousYin && previousYin.hz) {
+        yinStable = Math.abs(centsBetween(y.hz, previousYin.hz)) < 32;
+      }
+
+      if (yinStable && y.rms >= MIN_RMS * 1.6 && disagreement < 320) {
+        return { hz: y.hz, source: "YIN fast-path", quality: 0.62 };
+      }
+
+      return { hz: c.hz, source: "CREPE", quality: 0.62 };
+    }
+
+    if (c) return { hz: c.hz, source: "CREPE", quality: 0.70 };
+    if (y) return { hz: y.hz, source: "YIN", quality: 0.52 };
+    return null;
+  }
+
+  function processPitch(result) {
+    const now = performance.now();
+    if (!result || !result.hz) return;
+    if (now - lastProcessAt < 7) return;
+    lastProcessAt = now;
+
+    const rawHz = result.hz;
+    const note = swaraFromHz(rawHz);
+
+    // Adaptive smoothing for the visual pitch only:
+    // stable note -> mild smoothing; movement -> almost raw.
+    if (smoothedCents == null) smoothedCents = note.relativeCents;
+    const movement = Math.abs(note.relativeCents - smoothedCents);
+    const alpha = movement > 35 ? 0.90 : 0.28;
+    smoothedCents += alpha * (note.relativeCents - smoothedCents);
+    const displayHz = hzFromCents(getSaHz(), smoothedCents);
+
+    latestResult = { ...result, rawHz, displayHz, note, time: now };
+
+    detectNoteEvent(note, result.quality, now);
+    trace.push({ t: now, cents: smoothedCents });
+    if (trace.length > MAX_TRACE) trace.shift();
+
+    render();
+  }
+
+  function detectNoteEvent(note, quality, now) {
+    // Require the candidate to actually be near a swara center. This avoids
+    // chattering exactly between two adjacent notes.
+    const centeredEnough = Math.abs(note.error) <= 42;
+    if (!centeredEnough) return;
+
+    if (!currentNote) {
+      commitNote(note, now);
+      return;
+    }
+
+    if (note.key === currentNote.key) {
+      candidateNote = null;
+      return;
+    }
+
+    if (!candidateNote || candidateNote.key !== note.key) {
+      candidateNote = { ...note, firstAt: now, count: 1 };
+    } else {
+      candidateNote.count++;
+    }
+
+    const jumpFromCurrent = Math.abs(note.centerCents - currentNote.centerCents);
+    const dwell = now - candidateNote.firstAt;
+
+    // Fast path for real note movement: one strong centered observation can
+    // switch immediately; otherwise two observations / ~22 ms are enough.
+    const strongFastChange = jumpFromCurrent >= 90 &&
+                             Math.abs(note.error) <= 30 &&
+                             quality >= 0.58;
+
+    if (strongFastChange || candidateNote.count >= 2 || dwell >= 22) {
+      commitNote(note, now);
+      candidateNote = null;
+    }
+  }
+
+  function commitNote(note, now) {
+    currentNote = { ...note, committedAt: now };
+    const last = noteHistory[noteHistory.length - 1];
+    if (!last || last.key !== note.key) {
+      noteHistory.push({ key: note.key, label: note.label, t: now });
+      if (noteHistory.length > 24) noteHistory.shift();
+      renderHistory();
+    }
+  }
+
+  function renderHistory() {
+    const el = $("history");
+    el.innerHTML = "";
+    for (const item of noteHistory) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = item.label;
+      el.appendChild(chip);
+    }
+  }
+
+  function render() {
+    if (!latestResult) return;
+    const { displayHz, note, quality, source } = latestResult;
+
+    $("swara").textContent = currentNote ? currentNote.label : note.label;
+    $("western").textContent = westernNote(displayHz);
+    $("hz").textContent = `${displayHz.toFixed(2)} Hz`;
+    $("cents").textContent = `${note.error >= 0 ? "+" : ""}${note.error.toFixed(1)} cents from ${note.label}`;
+
+    const q = Math.round(clamp(quality, 0, 1) * 100);
+    $("quality").textContent = `${q}%`;
+    $("qualityBar").style.width = `${q}%`;
+    $("qualityBar").style.color = q >= 80 ? "var(--good)" : q >= 55 ? "var(--warn)" : "var(--bad)";
+    $("sourceText").textContent = `Source: ${source}`;
+
+    $("crepeHz").textContent = lastCrepe ? `${lastCrepe.hz.toFixed(2)} Hz` : "—";
+    $("yinHz").textContent = lastYin && lastYin.hz ? `${lastYin.hz.toFixed(2)} Hz` : "—";
+    $("rms").textContent = lastYin ? lastYin.rms.toFixed(4) : "—";
+
+    drawGraph();
+  }
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawGraph();
+  }
+
+  function smoothGraphValues(values) {
+    if (values.length < 3) return values.slice();
+
+    const amount = Number(graphSmoothing.value) / 100;
+    if (amount <= 0.001) return values.slice();
+
+    // Two-pass exponential smoothing. The backward pass removes most of the
+    // visual lag of a normal EMA, so the graph gets smoother without making
+    // the live note detector slower. This affects ONLY the canvas trace.
+    const alpha = 0.90 - 0.82 * amount;
+
+    const forward = new Array(values.length);
+    forward[0] = values[0];
+    for (let i = 1; i < values.length; i++) {
+      forward[i] = forward[i - 1] + alpha * (values[i] - forward[i - 1]);
+    }
+
+    const backward = new Array(values.length);
+    backward[values.length - 1] = forward[values.length - 1];
+    for (let i = values.length - 2; i >= 0; i--) {
+      backward[i] = backward[i + 1] + alpha * (forward[i] - backward[i + 1]);
+    }
+
+    // At high slider values, add a small symmetric moving-average pass to
+    // remove tiny stair-steps/jitter while keeping note transitions visible.
+    const radius = Math.round(amount * amount * 8);
+    if (radius <= 0) return backward;
+
+    const out = new Array(values.length);
+    for (let i = 0; i < values.length; i++) {
+      let sum = 0;
+      let weight = 0;
+      const start = Math.max(0, i - radius);
+      const end = Math.min(values.length - 1, i + radius);
+      for (let j = start; j <= end; j++) {
+        const w = radius + 1 - Math.abs(i - j);
+        sum += backward[j] * w;
+        weight += w;
+      }
+      out[i] = sum / weight;
+    }
+    return out;
+  }
+
+  function drawSmoothCurve(points) {
+    if (points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    if (Number(graphSmoothing.value) < 10 || points.length < 3) {
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+      return;
+    }
+
+    // Quadratic midpoint interpolation makes the rendered line itself smooth
+    // rather than merely smoothing the underlying pitch values.
+    for (let i = 1; i < points.length - 1; i++) {
+      const xc = (points[i].x + points[i + 1].x) / 2;
+      const yc = (points[i].y + points[i + 1].y) / 2;
+      ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+    }
+    const last = points[points.length - 1];
+    ctx.quadraticCurveTo(last.x, last.y, last.x, last.y);
+    ctx.stroke();
+  }
+
+  function drawGraph() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#0b0e14";
+    ctx.fillRect(0, 0, w, h);
+
+    if (trace.length < 2) return;
+
+    const rawValues = trace.map(p => p.cents);
+    const values = smoothGraphValues(rawValues);
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    const center = (min + max) / 2;
+    const span = Math.max(500, max - min + 220);
+    min = center - span / 2;
+    max = center + span / 2;
+
+    // Draw semitone reference lines.
+    const firstLine = Math.floor(min / 100) * 100;
+    ctx.font = "11px system-ui";
+    ctx.textBaseline = "middle";
+    for (let c = firstLine; c <= max; c += 100) {
+      const y = h - ((c - min) / (max - min)) * h;
+      ctx.strokeStyle = c % 1200 === 0 ? "#45516a" : "#222b3a";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+
+      const step = Math.round(c / 100);
+      const label = SWARAS[mod(step, 12)];
+      ctx.fillStyle = "#707d90";
+      ctx.fillText(label, 7, y - 8);
+    }
+
+    ctx.strokeStyle = "#8ab4ff";
+    ctx.lineWidth = 2.4;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    const points = values.map((cents, i) => ({
+      x: (i / Math.max(1, values.length - 1)) * w,
+      y: h - ((cents - min) / (max - min)) * h
+    }));
+    drawSmoothCurve(points);
+  }
+
+  function updateFromEstimators() {
+    const fused = fusePitch();
+    if (fused) processPitch(fused);
+  }
+
+  function crepeLoop() {
+    if (!running || !pitchDetector) return;
+
+    pitchDetector.getPitch((err, frequency) => {
+      if (!running) return;
+
+      if (err) {
+        console.warn("CREPE pitch error:", err);
+      } else if (frequency && Number.isFinite(frequency) && frequency >= MIN_HZ && frequency <= MAX_HZ) {
+        lastCrepe = { hz: frequency, t: performance.now() };
+        updateFromEstimators();
+      }
+
+      if (running) setTimeout(crepeLoop, 0);
+    });
+  }
+
+  function yinLoop() {
+    if (!running || !analyser || !timeData) return;
+
+    analyser.getFloatTimeDomainData(timeData);
+    const result = yinPitch(timeData, audioContext.sampleRate);
+
+    previousYin = lastYin;
+    lastYin = {
+      hz: result.hz,
+      rms: result.rms,
+      t: performance.now()
+    };
+
+    updateFromEstimators();
+    if (running) requestAnimationFrame(yinLoop);
+  }
+
+  async function start() {
+    if (running) return;
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("getUserMedia is unavailable. Open this page on HTTPS or localhost.");
+      }
+      if (!window.ml5?.pitchDetection) {
+        throw new Error("ml5 pitchDetection failed to load. Check your internet connection/CDN access.");
+      }
+
+      startBtn.disabled = true;
+      statusEl.textContent = "Requesting microphone…";
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      await audioContext.resume();
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1
+        }
+      });
+
+      micSource = audioContext.createMediaStreamSource(mediaStream);
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0;
+      micSource.connect(analyser);
+      timeData = new Float32Array(analyser.fftSize);
+
+      $("sampleRate").textContent = `${audioContext.sampleRate} Hz`;
+      statusEl.textContent = "Loading CREPE model…";
+
+      running = true;
+      stopBtn.disabled = false;
+      setSaBtn.disabled = false;
+
+      pitchDetector = ml5.pitchDetection(
+        CREPE_MODEL_URL,
+        audioContext,
+        mediaStream,
+        () => {
+          if (!running) return;
+          statusEl.textContent = "Listening";
+          crepeLoop();
+          requestAnimationFrame(yinLoop);
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      statusEl.textContent = `Error: ${error.message}`;
+      startBtn.disabled = false;
+      stop();
+    }
+  }
+
+  function stop() {
+    running = false;
+    pitchDetector = null;
+
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
+    }
+    if (micSource) {
+      try { micSource.disconnect(); } catch (_) {}
+      micSource = null;
+    }
+    if (audioContext) {
+      try { audioContext.close(); } catch (_) {}
+      audioContext = null;
+    }
+
+    analyser = null;
+    timeData = null;
+    lastCrepe = null;
+    lastYin = null;
+    previousYin = null;
+    latestResult = null;
+    smoothedCents = null;
+    currentNote = null;
+    candidateNote = null;
+    trace.length = 0;
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    setSaBtn.disabled = true;
+    statusEl.textContent = "Stopped";
+  }
+
+  function useCurrentAsSa() {
+    if (!latestResult?.rawHz) return;
+    saInput.value = latestResult.rawHz.toFixed(2);
+    smoothedCents = 0;
+    currentNote = null;
+    candidateNote = null;
+    noteHistory.length = 0;
+    renderHistory();
+  }
+
+  startBtn.addEventListener("click", start);
+  stopBtn.addEventListener("click", stop);
+  setSaBtn.addEventListener("click", useCurrentAsSa);
+  graphSmoothing.addEventListener("input", () => {
+    graphSmoothingValue.textContent = `${graphSmoothing.value}%`;
+    drawGraph();
+  });
+  saInput.addEventListener("change", () => {
+    smoothedCents = null;
+    currentNote = null;
+    candidateNote = null;
+    noteHistory.length = 0;
+    trace.length = 0;
+    renderHistory();
+  });
+
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+})();
+</script>
+</body>
+</html>
