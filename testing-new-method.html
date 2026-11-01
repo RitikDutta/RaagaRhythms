@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CREPE + Fast Swara Tracker</title>
 
-  <!-- Pinned ml5 version that still exposes ml5.pitchDetection(CREPE). -->
-  <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+  <script src="./vocal-accuracy/scheduling.js"></script>
 
   <style>
     :root {
@@ -166,7 +165,7 @@
   <main class="wrap">
     <h1>CREPE + Fast Swara Tracker</h1>
     <div class="subtitle">
-      CREPE is the primary pitch detector. A short-window YIN tracker helps react to rapid note changes.
+      A fast YIN tracker follows rapid note changes, with CREPE checking the pitch in the background.
       Note detection stays responsive, while the graph has independently adjustable visual smoothing.
     </div>
 
@@ -228,10 +227,6 @@
 
 <script>
 (() => {
-  // Historical ml5 CREPE browser model. Keeping this URL external lets the app remain one HTML file.
-  const CREPE_MODEL_URL =
-    "https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/";
-
   // Hindustani 12-tone mapping relative to tonic Sa.
   // re/ga/dha/ni = komal, M^ = tivra Ma.
   const SWARAS = ["Sa", "re", "Re", "ga", "Ga", "Ma", "M^", "Pa", "dha", "Dha", "ni", "Ni"];
@@ -246,14 +241,20 @@
   const graphSmoothingValue = $("graphSmoothingValue");
   const canvas = $("graph");
   const ctx = canvas.getContext("2d");
+  let graphWidth = 0, graphHeight = 0;
 
   let running = false;
   let audioContext = null;
   let mediaStream = null;
   let micSource = null;
   let analyser = null;
-  let pitchDetector = null;
+  let analysisWorker = null, neuralWorker = null;
+  let analysisBusy = false, neuralReady = false;
+  let yinTimer = null, neuralTimeout = null;
+  let sessionId = 0;
+  let budget = new PitchScheduling.NeuralBudget();
   let timeData = null;
+  const painter = PitchScheduling.createPainter(render);
 
   let lastCrepe = null;
   let lastYin = null;
@@ -309,81 +310,6 @@
       relativeCents,
       centerCents: nearestStep * 100
     };
-  }
-
-  function rms(buffer) {
-    let sum = 0;
-    for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
-    return Math.sqrt(sum / buffer.length);
-  }
-
-  // Lightweight YIN implementation for fast local tracking.
-  // It is NOT used as the primary model; CREPE remains primary.
-  function yinPitch(buffer, sampleRate) {
-    const size = buffer.length;
-    const signalRms = rms(buffer);
-    if (signalRms < MIN_RMS) return { hz: null, rms: signalRms };
-
-    const minTau = Math.max(2, Math.floor(sampleRate / MAX_HZ));
-    const maxTau = Math.min(Math.floor(size / 2), Math.ceil(sampleRate / MIN_HZ));
-    const diff = new Float32Array(maxTau + 1);
-    const cmnd = new Float32Array(maxTau + 1);
-
-    for (let tau = minTau; tau <= maxTau; tau++) {
-      let d = 0;
-      const limit = size - tau;
-      for (let i = 0; i < limit; i++) {
-        const delta = buffer[i] - buffer[i + tau];
-        d += delta * delta;
-      }
-      diff[tau] = d;
-    }
-
-    cmnd[0] = 1;
-    let runningSum = 0;
-    for (let tau = 1; tau <= maxTau; tau++) {
-      runningSum += diff[tau];
-      cmnd[tau] = runningSum > 0 ? diff[tau] * tau / runningSum : 1;
-    }
-
-    const threshold = 0.12;
-    let tauEstimate = -1;
-
-    for (let tau = minTau; tau <= maxTau; tau++) {
-      if (cmnd[tau] < threshold) {
-        while (tau + 1 <= maxTau && cmnd[tau + 1] < cmnd[tau]) tau++;
-        tauEstimate = tau;
-        break;
-      }
-    }
-
-    if (tauEstimate < 0) {
-      let best = minTau;
-      for (let tau = minTau + 1; tau <= maxTau; tau++) {
-        if (cmnd[tau] < cmnd[best]) best = tau;
-      }
-      if (cmnd[best] > 0.28) return { hz: null, rms: signalRms };
-      tauEstimate = best;
-    }
-
-    // Parabolic interpolation around the YIN minimum.
-    let betterTau = tauEstimate;
-    if (tauEstimate > 1 && tauEstimate < maxTau) {
-      const s0 = cmnd[tauEstimate - 1];
-      const s1 = cmnd[tauEstimate];
-      const s2 = cmnd[tauEstimate + 1];
-      const denom = 2 * (2 * s1 - s2 - s0);
-      if (Math.abs(denom) > 1e-12) {
-        betterTau = tauEstimate + (s2 - s0) / denom;
-      }
-    }
-
-    const hz = sampleRate / betterTau;
-    if (!Number.isFinite(hz) || hz < MIN_HZ || hz > MAX_HZ) {
-      return { hz: null, rms: signalRms };
-    }
-
-    return { hz, rms: signalRms };
   }
 
   function geometricBlend(a, b, weightA) {
@@ -469,7 +395,7 @@
     trace.push({ t: now, cents: smoothedCents });
     if (trace.length > MAX_TRACE) trace.shift();
 
-    render();
+    painter.request();
   }
 
   function detectNoteEvent(note, quality, now) {
@@ -531,7 +457,15 @@
   }
 
   function render() {
-    if (!latestResult) return;
+    if (!latestResult) {
+      $("swara").textContent = '—'; $("western").textContent = 'Sing into the microphone';
+      $("hz").textContent = '— Hz'; $("cents").textContent = '— cents from swara center';
+      $("sourceText").textContent = lastYin?.reason || 'Listening for a clear pitch';
+      $("quality").textContent = '—'; $("qualityBar").style.width = '0%';
+      $("crepeHz").textContent = '—'; $("yinHz").textContent = '—';
+      $("rms").textContent = lastYin ? lastYin.rms.toFixed(4) : '—';
+      drawGraph(); return;
+    }
     const { displayHz, note, quality, source } = latestResult;
 
     $("swara").textContent = currentNote ? currentNote.label : note.label;
@@ -554,7 +488,8 @@
 
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    graphWidth = rect.width; graphHeight = rect.height;
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -630,8 +565,8 @@
   }
 
   function drawGraph() {
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
+    const w = graphWidth;
+    const h = graphHeight;
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = "#0b0e14";
     ctx.fillRect(0, 0, w, h);
@@ -683,58 +618,76 @@
     if (fused) processPitch(fused);
   }
 
-  function crepeLoop() {
-    if (!running || !pitchDetector) return;
-
-    pitchDetector.getPitch((err, frequency) => {
-      if (!running) return;
-
-      if (err) {
-        console.warn("CREPE pitch error:", err);
-      } else if (frequency && Number.isFinite(frequency) && frequency >= MIN_HZ && frequency <= MAX_HZ) {
-        lastCrepe = { hz: frequency, t: performance.now() };
-        updateFromEstimators();
-      }
-
-      if (running) setTimeout(crepeLoop, 0);
-    });
-  }
-
   function yinLoop() {
     if (!running || !analyser || !timeData) return;
+    if (!document.hidden && !analysisBusy) {
+      analyser.getFloatTimeDomainData(timeData);
+      const frame = timeData.slice();
+      analysisBusy = true;
+      analysisWorker.postMessage({ frame, rate: audioContext.sampleRate, t: performance.now(),
+        needNeural: neuralReady && budget.available(performance.now()),
+        options: { minHz: MIN_HZ, maxHz: MAX_HZ, gateDb: 20 * Math.log10(MIN_RMS) }
+      }, [frame.buffer]);
+    }
+    // Fixed-rate analysis stays independent of monitor refresh rate. There is
+    // only one frame in flight, so a slow worker never builds a backlog.
+    yinTimer = setTimeout(yinLoop, 40);
+  }
 
-    analyser.getFloatTimeDomainData(timeData);
-    const result = yinPitch(timeData, audioContext.sampleRate);
-
-    previousYin = lastYin;
-    lastYin = {
-      hz: result.hz,
-      rms: result.rms,
-      t: performance.now()
+  function startNeural(id) {
+    const fallback = () => {
+      if (!running || id !== sessionId) return;
+      clearTimeout(neuralTimeout);
+      neuralWorker?.terminate(); neuralWorker = null; neuralReady = false; lastCrepe = null;
+      $("crepeHz").textContent = 'Unavailable · YIN active';
+      statusEl.textContent = 'Listening · YIN only';
     };
-
-    updateFromEstimators();
-    if (running) requestAnimationFrame(yinLoop);
+    try {
+      neuralWorker = new Worker(new URL('./vocal-accuracy/neural-worker.js', location.href));
+      neuralWorker.onerror = fallback;
+      neuralWorker.onmessage = ({ data }) => {
+        if (!running || id !== sessionId) return;
+        if (data.type === 'error') { fallback(); return; }
+        clearTimeout(neuralTimeout);
+        if (data.type === 'ready') {
+          neuralReady = true;
+          statusEl.textContent = document.hidden ? 'Paused while tab is hidden' : 'Listening · YIN + CREPE';
+        } else if (data.type === 'prediction') {
+          budget.finish(performance.now(), data.inferenceMs);
+          if (!document.hidden && performance.now() - data.t < 250 && Number.isFinite(data.hz)
+              && data.confidence >= 0.5 && data.hz >= MIN_HZ && data.hz <= MAX_HZ) {
+            lastCrepe = { hz: data.hz, t: data.t };
+            updateFromEstimators();
+          }
+        }
+      };
+      neuralTimeout = setTimeout(fallback, 20000);
+      neuralWorker.postMessage({ type: 'init',
+        runtimeURL: new URL('./vocal-accuracy/tfjs-4.22.0.min.js', location.href).href,
+        modelURL: new URL('./crepe/model/model.json', location.href).href,
+        wasmURL: new URL('./vocal-accuracy/tfjs-backend-wasm-4.22.0.min.js', location.href).href,
+        wasmPath: new URL('./vocal-accuracy/', location.href).href });
+    } catch (_) { fallback(); }
   }
 
   async function start() {
     if (running) return;
+    const id = ++sessionId;
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("getUserMedia is unavailable. Open this page on HTTPS or localhost.");
       }
-      if (!window.ml5?.pitchDetection) {
-        throw new Error("ml5 pitchDetection failed to load. Check your internet connection/CDN access.");
-      }
-
+      running = true;
       startBtn.disabled = true;
+      stopBtn.disabled = false;
       statusEl.textContent = "Requesting microphone…";
 
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       await audioContext.resume();
+      if (!running || id !== sessionId) return;
 
-      mediaStream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: false,
         audio: {
           echoCancellation: false,
@@ -743,43 +696,61 @@
           channelCount: 1
         }
       });
+      if (!running || id !== sessionId) { stream.getTracks().forEach(track => track.stop()); return; }
+      mediaStream = stream;
 
       micSource = audioContext.createMediaStreamSource(mediaStream);
       analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
+      analyser.fftSize = Math.min(32768, 2 ** Math.ceil(Math.log2(audioContext.sampleRate * 0.105)));
       analyser.smoothingTimeConstant = 0;
       micSource.connect(analyser);
       timeData = new Float32Array(analyser.fftSize);
 
       $("sampleRate").textContent = `${audioContext.sampleRate} Hz`;
-      statusEl.textContent = "Loading CREPE model…";
-
-      running = true;
-      stopBtn.disabled = false;
+      statusEl.textContent = "Listening · loading background pitch check…";
       setSaBtn.disabled = false;
-
-      pitchDetector = ml5.pitchDetection(
-        CREPE_MODEL_URL,
-        audioContext,
-        mediaStream,
-        () => {
-          if (!running) return;
-          statusEl.textContent = "Listening";
-          crepeLoop();
-          requestAnimationFrame(yinLoop);
+      analysisWorker = new Worker(new URL('./vocal-accuracy/analysis-worker.js', location.href));
+      analysisWorker.onerror = () => { if (id === sessionId) stop('Audio analysis failed. Reload and try again.'); };
+      analysisWorker.onmessage = ({ data }) => {
+        if (!running || id !== sessionId) return;
+        analysisBusy = false;
+        if (data.error) { stop('Audio analysis error: ' + data.error); return; }
+        if (document.hidden || performance.now() - data.t > 180) return;
+        previousYin = lastYin;
+        lastYin = { hz: data.quality >= 0.72 ? data.hz : null, rms: data.rms, t: data.t, reason: data.reason };
+        if (neuralReady && data.neuralFrame && !data.blocked && budget.start(performance.now())) {
+          neuralWorker.postMessage({ type: 'process', frame: data.neuralFrame, t: data.t }, [data.neuralFrame.buffer]);
+          neuralTimeout = setTimeout(() => {
+            if (!running || id !== sessionId) return;
+            neuralWorker?.terminate(); neuralWorker = null; neuralReady = false; lastCrepe = null;
+            statusEl.textContent = 'Listening · YIN only';
+          }, 4000);
         }
-      );
+        if (data.blocked) lastCrepe = null;
+        updateFromEstimators();
+        if (!lastYin.hz && !lastCrepe) {
+          latestResult = null; currentNote = null; candidateNote = null;
+          painter.request();
+        }
+      };
+      mediaStream.getTracks().forEach(track => track.addEventListener('ended', () => {
+        if (id === sessionId) stop('Microphone disconnected');
+      }));
+      budget = new PitchScheduling.NeuralBudget();
+      startNeural(id);
+      yinLoop();
     } catch (error) {
       console.error(error);
-      statusEl.textContent = `Error: ${error.message}`;
-      startBtn.disabled = false;
-      stop();
+      if (id === sessionId) stop(`Error: ${error.message}`);
     }
   }
 
-  function stop() {
+  function stop(message = 'Stopped') {
     running = false;
-    pitchDetector = null;
+    sessionId++;
+    clearTimeout(yinTimer); clearTimeout(neuralTimeout); painter.cancel();
+    analysisWorker?.terminate(); neuralWorker?.terminate();
+    analysisWorker = null; neuralWorker = null; analysisBusy = false; neuralReady = false;
 
     if (mediaStream) {
       mediaStream.getTracks().forEach(track => track.stop());
@@ -808,7 +779,8 @@
     startBtn.disabled = false;
     stopBtn.disabled = true;
     setSaBtn.disabled = true;
-    statusEl.textContent = "Stopped";
+    statusEl.textContent = message;
+    render();
   }
 
   function useCurrentAsSa() {
@@ -822,7 +794,7 @@
   }
 
   startBtn.addEventListener("click", start);
-  stopBtn.addEventListener("click", stop);
+  stopBtn.addEventListener("click", () => stop());
   setSaBtn.addEventListener("click", useCurrentAsSa);
   graphSmoothing.addEventListener("input", () => {
     graphSmoothingValue.textContent = `${graphSmoothing.value}%`;
@@ -838,6 +810,20 @@
   });
 
   window.addEventListener("resize", resizeCanvas);
+  document.addEventListener('visibilitychange', () => {
+    if (!running || !audioContext) return;
+    lastCrepe = null; lastYin = null; previousYin = null; latestResult = null;
+    currentNote = null; candidateNote = null; smoothedCents = null;
+    painter.cancel();
+    if (document.hidden) {
+      audioContext.suspend().catch(() => {});
+      statusEl.textContent = 'Paused while tab is hidden';
+    } else {
+      audioContext.resume().catch(error => stop(error.message));
+      statusEl.textContent = neuralReady ? 'Listening · YIN + CREPE' : 'Listening · YIN only';
+    }
+  });
+  window.addEventListener('pagehide', () => stop());
   resizeCanvas();
 })();
 </script>

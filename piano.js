@@ -672,7 +672,6 @@ let crepeLoadingPromise = null;
 let crepeRunning = false;
 let crepeInputMode = null;
 let crepeActiveAudioTrack = null;
-let centMapping = null;
 
 function setPitchStatus(message) {
     if (pitchStatus) {
@@ -1219,44 +1218,64 @@ function resample(audioBuffer, onComplete) {
     onComplete(subsamples);
 }
 
-function ensureCentMapping() {
-    if (!centMapping) {
-        centMapping = tf.add(tf.linspace(0, 7180, 360), tf.tensor(1997.3794084376191));
+function predictCrepeFrame(model, samples) {
+    let mean = 0;
+    for (const sample of samples) mean += sample;
+    mean /= samples.length;
+    let variance = 0;
+    for (const sample of samples) variance += (sample - mean) ** 2;
+    const std = Math.sqrt(variance / samples.length);
+    // A silent or muted mic must not send NaNs into the model.
+    if (!Number.isFinite(std) || std < 1e-6) {
+        return { hz: NaN, confidence: 0, activation: new Float32Array(360) };
+    }
+    const normalized = Float32Array.from(samples, (sample) => (sample - mean) / std);
+    return tf.tidy(() => {
+        const input = tf.tensor(normalized, [1, 1024]);
+        const activation = new Float32Array(model.predict(input).dataSync());
+        let center = 0;
+        for (let i = 1; i < activation.length; i++) {
+            if (activation[i] > activation[center]) center = i;
+        }
+        let productSum = 0;
+        let weightSum = 0;
+        for (let i = Math.max(0, center - 4); i < Math.min(360, center + 5); i++) {
+            productSum += activation[i] * (1997.3794084376191 + i * 7180 / 359);
+            weightSum += activation[i];
+        }
+        const cents = weightSum ? productSum / weightSum : NaN;
+        return { hz: 10 * 2 ** (cents / 1200), confidence: activation[center], activation };
+    });
+}
+
+function validateCrepeModel(model) {
+    // Exercise the actual backend: a successful download does not prove that
+    // this browser/GPU can run the model correctly.
+    for (const hz of [110, 240, 440]) {
+        const samples = Float32Array.from({ length: 1024 }, (_, i) =>
+            Math.sin(2 * Math.PI * hz * i / 16000) + 0.4 * Math.sin(4 * Math.PI * hz * i / 16000));
+        const result = predictCrepeFrame(model, samples);
+        const errorCents = Math.abs(1200 * Math.log2(result.hz / hz));
+        if (!Number.isFinite(errorCents) || errorCents > 35 || !(result.confidence > 0.5)) {
+            throw new Error('Pitch engine self-check failed.');
+        }
     }
 }
 
 function processAudioBuffer(event) {
     if (!crepeRunning || !crepeModel) return;
-    ensureCentMapping();
-    resample(event.inputBuffer, (resampled) => {
-        tf.tidy(() => {
-            const frame = tf.tensor(resampled.slice(0, 1024));
-            const zeromean = tf.sub(frame, tf.mean(frame));
-            const framestd = tf.tensor(tf.norm(zeromean).dataSync() / Math.sqrt(1024));
-            const normalized = tf.div(zeromean, framestd);
-            const input = normalized.reshape([1, 1024]);
-            const activation = crepeModel.predict([input]).reshape([360]);
-
-            const confidence = activation.max().dataSync()[0];
-            const center = activation.argMax().dataSync()[0];
-
-            const start = Math.max(0, center - 4);
-            const end = Math.min(360, center + 5);
-            const weights = activation.slice([start], [end - start]);
-            const cents = centMapping.slice([start], [end - start]);
-
-            const products = tf.mul(weights, cents);
-            const productSum = products.dataSync().reduce((a, b) => a + b, 0);
-            const weightSum = weights.dataSync().reduce((a, b) => a + b, 0);
-            const predictedCent = weightSum ? productSum / weightSum : NaN;
-            const predictedHz = 10 * Math.pow(2, predictedCent / 1200.0);
-
-            updatePitchDisplay(predictedHz, confidence);
-            updateAnalyzerKeyHighlight(predictedHz, confidence);
-            updatePitchGraph(predictedHz, confidence);
-            updateActivation(activation.dataSync());
+    try {
+        resample(event.inputBuffer, (resampled) => {
+            const result = predictCrepeFrame(crepeModel, resampled);
+            updatePitchDisplay(result.hz, result.confidence);
+            updateAnalyzerKeyHighlight(result.hz, result.confidence);
+            updatePitchGraph(result.hz, result.confidence);
+            updateActivation(result.activation);
         });
-    });
+    } catch (error) {
+        console.error('CREPE pitch processing error:', error);
+        stopCrepeAnalyzer(`Pitch analysis stopped: ${error.message}`);
+    }
 }
 
 function processAudioSource(sourceNode) {
@@ -1292,18 +1311,36 @@ function getUserMedia(constraints) {
 async function loadCrepeModel() {
     if (crepeModel) return crepeModel;
     if (crepeLoadingPromise) return crepeLoadingPromise;
-    if (!window.tf || !tf.loadModel) {
+    if (!window.tf || !tf.loadLayersModel) {
         throw new Error('TensorFlow.js not loaded');
     }
-    crepeLoadingPromise = tf.loadModel(CREPE_MODEL_URL)
-        .then((model) => {
+    crepeLoadingPromise = (async () => {
+        let model = null;
+        try {
+            await tf.ready();
+            model = await tf.loadLayersModel(CREPE_MODEL_URL);
+            setPitchStatus('Checking pitch engine...');
+            try {
+                validateCrepeModel(model);
+            } catch (error) {
+                if (tf.getBackend() === 'cpu') throw error;
+                console.warn('CREPE graphics backend failed; retrying on CPU:', error);
+                model.dispose();
+                model = null;
+                setPitchStatus('Preparing compatible pitch engine...');
+                await tf.setBackend('cpu');
+                await tf.ready();
+                model = await tf.loadLayersModel(CREPE_MODEL_URL);
+                validateCrepeModel(model);
+            }
             crepeModel = model;
             return model;
-        })
-        .catch((error) => {
+        } catch (error) {
+            if (model) model.dispose();
             crepeLoadingPromise = null;
             throw error;
-        });
+        }
+    })();
     return crepeLoadingPromise;
 }
 
@@ -1371,6 +1408,10 @@ async function startCrepeAnalyzer() {
             }
         });
         attachCrepeStream(stream, 'mic', 'No microphone audio captured.');
+        // Opening the input device can suspend the context on some platforms.
+        if (crepeAudioContext.state === 'suspended') {
+            await crepeAudioContext.resume();
+        }
         setPitchStatus('Mic on.');
         setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: false });
     } catch (error) {
@@ -1396,12 +1437,16 @@ async function startCrepeTabAnalyzer() {
     if (crepeRunning) return;
 
     try {
-        await prepareCrepeStart();
+        setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: true });
         setPitchStatus('Select "This Tab" and enable "Share audio", then click Share.');
+        // Chrome requires the share picker to open during the click, before
+        // model loading or other awaited work consumes transient activation.
         const stream = await navigator.mediaDevices.getDisplayMedia({
             video: true,
             audio: true
         });
+        crepeStream = stream;
+        await prepareCrepeStart();
         attachCrepeStream(stream, 'tab', 'No audio captured—please enable Share audio.');
         setPitchStatus('Tab audio on.');
         setAnalyzerButtons({ micDisabled: true, tabDisabled: true, stopDisabled: false });
