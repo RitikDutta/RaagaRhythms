@@ -17,7 +17,7 @@ const PitchScheduling = (() => {
     }
   }
 
-  function createPainter(paint) {
+  function createPainter(paint, intervalMs = 50) {
     let timer = null, lastAt = -Infinity;
     return {
       request() {
@@ -27,7 +27,7 @@ const PitchScheduling = (() => {
           if (document.hidden) return;
           lastAt = performance.now();
           paint();
-        }, Math.max(0, 50 - (performance.now() - lastAt)));
+        }, Math.max(0, intervalMs - (performance.now() - lastAt)));
       },
       cancel() { clearTimeout(timer); timer = null; }
     };

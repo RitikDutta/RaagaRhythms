@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mic Proximity Lab · RaagaRhythms</title>
+  <link rel="icon" href="./images/favicon.ico">
+  <link rel="stylesheet" href="./mic-proximity/style.css">
+  <script src="./mic-proximity/core.js" defer></script>
+  <script src="./mic-proximity/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <nav class="topline"><a href="testing-new-method.html">← Swara tracker</a><span>RAAGARHYTHMS <b>/</b> SOUND EXPERIMENT 03</span><span class="local-tag">● On-device audio</span></nav>
+    <header>
+      <div><p class="eyebrow">A SMALL CHANGE IN SOUND. A NEW KIND OF CONTROL.</p><h1>Mic Proximity <em>Lab.</em></h1></div>
+      <p class="intro">Turn the strange hand-near-mic effect into a live acoustic experiment. Teach it two positions, then watch your sound move between them.</p>
+    </header>
+
+    <section class="controls" aria-label="Microphone controls">
+      <button id="start" class="primary" type="button">Start microphone <span>↗</span></button>
+      <button id="stop" type="button" disabled>Stop</button>
+      <label>Experiment<select id="mode"><option value="voice">Voice nearer / farther</option><option value="hand">Hand near the mic</option></select></label>
+      <label>Microphone<select id="device"><option value="">System default</option></select></label>
+      <span id="status" class="status" role="status">Ready when you are</span>
+    </section>
+
+    <div class="workspace">
+      <section class="panel sensor-panel" aria-labelledby="sensor-title">
+        <div class="panel-heading"><span class="eyebrow" id="sensor-title">LIVE ACOUSTIC MATCH</span><span class="experiment-badge">EXPERIMENTAL</span></div>
+        <div id="sensor" class="sensor" data-kind="idle">
+          <div class="rings" aria-hidden="true"><i></i><i></i><i></i><i></i><div class="core"><svg viewBox="0 0 32 32" fill="none"><rect x="11" y="4" width="10" height="16" rx="5" stroke="currentColor" stroke-width="1.5"/><path d="M7 15v1a9 9 0 0018 0v-1M16 25v4m-5 0h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+          <div class="sensor-readout"><span id="state-tag">WAITING FOR SOUND</span><h2 id="state">Let’s listen.</h2><p id="hint">Start the microphone, then capture your away and near positions.</p></div>
+        </div>
+        <div class="position-scale"><span>AWAY PATTERN</span><span>NEAR PATTERN</span></div>
+        <div class="position-track" aria-hidden="true"><div id="position-marker" hidden></div></div>
+        <p class="scale-note" id="match-note">A relative sound match, not a distance in centimetres.</p>
+        <div class="metrics">
+          <div><span>INPUT LEVEL</span><strong><span id="level">—</span> <small>dBFS</small></strong><div class="mini-track"><i id="level-bar"></i></div></div>
+          <div><span>BASS SHARE</span><strong><span id="bass">—</span> <small>%</small></strong><p>Energy below 600 Hz</p></div>
+          <div><span>BRIGHTNESS</span><strong><span id="brightness">—</span> <small>Hz</small></strong><p>Center of the spectrum</p></div>
+        </div>
+      </section>
+
+      <section class="panel calibration-panel" aria-labelledby="calibration-title">
+        <div class="panel-heading"><span class="eyebrow" id="calibration-title">TEACH IT YOUR SETUP</span><button id="reset" type="button" class="text-button">Reset</button></div>
+        <h2>Two positions.<br>One steady hum.</h2>
+        <p class="calibration-intro" id="mode-help">Keep your note and humming effort steady. Move your head between the two captures.</p>
+        <article class="sample-card" id="away-card"><div class="sample-heading"><span class="step">01</span><h3 id="away-title">Your usual position</h3><span id="away-badge" class="sample-badge">Not captured</span></div><p id="away-help">Sit at your normal distance from the mic and hum one comfortable note.</p><button id="capture-away" type="button" disabled>Capture away <span>2 sec</span></button></article>
+        <article class="sample-card" id="near-card"><div class="sample-heading"><span class="step">02</span><h3 id="near-title">A little closer</h3><span id="near-badge" class="sample-badge">Not captured</span></div><p id="near-help">Lean closer to the mic, keep the same humming effort, and hold your note.</p><button id="capture-near" type="button" disabled>Capture near <span>2 sec</span></button></article>
+        <progress id="capture-progress" max="1" value="0" hidden aria-label="Calibration capture progress"></progress>
+        <p id="calibration-message" class="calibration-message" role="status">Start with the away sample. Your microphone audio stays in this browser.</p>
+      </section>
+    </div>
+
+    <section class="panel timeline-panel" aria-labelledby="timeline-title"><div class="panel-heading"><div><span class="eyebrow" id="timeline-title">YOUR SOUND, IN MOTION</span><p>Last 15 seconds · gaps mean there wasn’t a clear match</p></div><span class="chart-key"><i></i> Near / away signature</span></div><canvas id="timeline" height="160" aria-label="Relative acoustic match over the last 15 seconds"></canvas></section>
+
+    <section class="explanation"><div><span class="eyebrow">WHAT DID YOUR HAND CHANGE?</span><h2>The sound around<br>the mic changes.</h2></div><div><p>Your hand can reflect and filter sound near the microphone. That can alter resonances and confuse the pitch tracker into reporting a different harmonic or an out-of-range pitch. That warning is a clue about the sound, not a measurement of distance.</p><p>This experiment compares loudness and the balance of low and high frequencies with your two captured samples. Try <strong>Hand near the mic</strong> to keep your head still and test the exact effect you noticed.</p><p class="honest-note">You need to keep humming. A silent person cannot be located this way. Louder humming, a different note, a different room, or another sound can resemble movement; “uncertain” means the samples don’t give a clear answer.</p><a href="https://www.dpamicrophones.com/mic-university/audio-production/proper-hand-placement-on-a-vocal-mic/" target="_blank" rel="noreferrer">Read about hand placement and microphone response ↗</a></div></section>
+    <footer><span>NO CAMERA · NO UPLOADS · NO NEURAL MODEL</span><span>Microphone analysis at 10 updates / second</span></footer>
+  </main>
+</body>
+</html>

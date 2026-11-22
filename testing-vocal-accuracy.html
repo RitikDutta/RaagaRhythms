@@ -171,6 +171,13 @@ summary { cursor:pointer; font-weight:700; }
 #quality { font-size:25px; }
 #swara { font-size:clamp(64px,10vw,120px); }
 .debug { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+.song-panel { margin:18px 0; padding:18px; border:1px solid var(--line); border-radius:16px; background:var(--panel); }
+.song-panel h2 { margin:0; font-size:20px; }
+.song-panel .settings { margin-top:12px; }
+#songFile { width:min(100%,340px); max-width:100%; }
+#songPlayer, #songProgress { width:100%; margin-top:12px; }
+#songProgress { accent-color:var(--accent); }
+[hidden] { display:none !important; }
 </style>
 </head>
 <body>
@@ -179,37 +186,54 @@ summary { cursor:pointer; font-weight:700; }
 <p class="subtitle">Follow your voice in Sa-relative swaras, across mandra, madhya, and taar saptak. Keep every shade of meend and gamak in the pitch contour.</p>
 <section class="toolbar" aria-label="Vocal tracker controls">
 <button id="startBtn" class="primary">Start microphone</button>
+<button id="tabBtn">Capture Chrome tab</button>
 <button id="stopBtn" disabled>Stop</button>
 <label>Your madhya Sa (Hz)<input id="saHz" type="number" min="55" max="1000" step="0.01" value="240" /></label>
 <button id="setSaBtn" disabled>Capture steady Sa</button>
-<label>Tracking <select id="trackingMode"><option value="continuous">Continuous vocals</option><option value="strict">Strict detection</option></select></label>
-<label>Vocal sensitivity <div class="range-row"><input id="vocalSensitivity" type="range" min="0" max="100" value="70" /><output id="vocalSensitivityValue" class="range-value">70%</output></div></label>
+<label>Live tracking <select id="trackingMode"><option value="continuous">Continuous vocals</option><option value="strict">Strict detection</option></select></label>
+<label>Live vocal sensitivity <div class="range-row"><input id="vocalSensitivity" type="range" min="0" max="100" value="70" /><output id="vocalSensitivityValue" class="range-value">70%</output></div></label>
 <label>Graph smoothing <div class="range-row"><input id="graphSmoothing" type="range" min="0" max="100" value="68" /><output id="graphSmoothingValue" class="range-value">68%</output></div></label>
 <div id="status" class="status" role="status">Ready</div>
 </section>
+<p class="notice">For audio playing in Chrome, choose <strong>Capture Chrome tab</strong>, select a Chrome tab, and enable <strong>Share tab audio</strong> (or <strong>Share audio</strong>) before sharing.</p>
 <p id="captureMessage" class="notice" role="status">Sing your comfortable madhya Sa steadily for one second, then capture it. Or enter your known tonic.</p>
 <p class="notice">Continuous mode recovers weaker vocal pitch and eases the mic cutoff during sustained singing. <span id="micFeedback" role="status">Mic threshold: −72 dBFS.</span></p>
+<section class="song-panel" aria-labelledby="songHeading">
+<h2 id="songHeading">Analyze a song before playback</h2>
+<p class="notice">Choose an audio file, let it finish processing, then play or seek through it with synchronized swaras. Your audio stays on this device. Best results come from solo vocals; a full mix can track instruments as well as the singer.</p>
+<div class="settings">
+<label>Audio file · up to 10 minutes / 50 MB<input id="songFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" /></label>
+<button id="analyzeSong" disabled>Analyze song</button>
+<button id="songExample">Analyze song_test.mp3</button>
+<button id="cancelSong" disabled>Cancel analysis</button>
+</div>
+<progress id="songProgress" max="100" value="0" hidden aria-label="Song analysis progress"></progress>
+<p id="songStatus" class="notice" role="status">Choose a song to analyze before playback. Pitch coverage describes how many frames have a usable estimate; it is not an accuracy score.</p>
+<audio id="songPlayer" controls preload="metadata" hidden></audio>
+<p class="small">Pitch coverage counts frames with a usable estimate; it does not measure note correctness. Set your Sa and singing range for the voice you are following.</p>
+</section>
 <section class="grid">
 <div class="card hero"><div class="label">Detected swara</div><div id="swara" class="swara">—</div><div id="western" class="western">Sing into the microphone</div><div id="register" class="small">re / ga / dha / ni = komal · M^ = tivra Ma</div></div>
 <div class="card"><div class="label">Measured vocal pitch</div><div id="hz" class="value">— Hz</div><div id="cents" class="small">— cents from reference</div><div id="movement" class="small">Continuous pitch · no note snapping</div></div>
 <div class="card"><div class="label">Pitch evidence</div><div id="quality" class="value">—</div><div class="meter"><div id="qualityBar"></div></div><div id="sourceText" class="small">Waiting for a clear pitch</div></div>
-<div class="card wide"><div class="label">Pitch contour · cents relative to Sa · last 8 seconds</div><canvas id="graph" aria-label="Vocal pitch contour with swara reference lines"></canvas><div class="debug"><div>CREPE: <strong id="crepeHz">Loading on start</strong></div><div>Periodicity: <strong id="periodicity">—</strong></div><div>Mic level: <strong id="rms">—</strong></div><div>Audio rate: <strong id="sampleRate">—</strong></div></div></div>
+<div class="card wide"><div class="label">Pitch contour · cents relative to Sa · last 8 seconds</div><canvas id="graph" aria-label="Vocal pitch contour with swara reference lines"></canvas><div class="debug"><div>CREPE: <strong id="crepeHz">Loading on start</strong></div><div>Periodicity: <strong id="periodicity">—</strong></div><div>Audio level: <strong id="rms">—</strong></div><div>Audio rate: <strong id="sampleRate">—</strong></div></div></div>
 <div class="card wide"><div class="label">Confirmed swara sequence</div><div id="history" class="history"></div><p class="notice">The large label names the nearest reference swara. The sequence waits briefly for a settled note; ornaments remain visible in the contour.</p></div>
 </section>
 <details><summary>Voice range and room noise</summary><div class="settings">
 <label>Lowest sung pitch (Hz)<input id="minHz" type="number" min="55" max="500" value="65" /></label>
 <label>Highest sung pitch (Hz)<input id="maxHz" type="number" min="150" max="1400" value="1200" /></label>
-<label>Minimum mic level (dBFS)<input id="noiseGate" type="number" min="-80" max="-15" value="-72" /></label>
+<label>Minimum input level (dBFS)<input id="noiseGate" type="number" min="-80" max="-15" value="-72" /></label>
 <button id="noiseBtn" disabled>Measure room noise</button>
 <button id="resetSensitivity">Reset mic sensitivity</button>
 </div><p class="notice">Higher vocal sensitivity accepts less perfectly periodic singing; very high settings can also admit room sounds. A more negative mic threshold captures quieter audio (−70 is more sensitive than −55). Include your whole singing range. For room calibration, stay quiet for 1.5 seconds. Sing solo; use headphones for tanpura or accompaniment so it does not enter the mic.</p></details>
 <details><summary>Swara reference tuning</summary><p class="notice">The initial guide spaces the 12 swaras evenly. You can offset each reference to match the intonation you practise. These settings change labels and guide lines only; measured Hz and ornamentation stay continuous.</p><div id="tuning" class="tuning"></div><p class="notice">Offsets are cents from the initial guide. Sa stays at your chosen tonic; octave equivalents follow it.</p><button id="resetTuning">Reset reference offsets</button></details>
-<details><summary>Troubleshoot dropouts</summary><p class="notice">Record a short phrase that drops out. The sample records microphone audio even when no swara is detected. Both downloads stay on your device until you choose to share them.</p><div class="settings"><button id="recordSample" disabled>Record a 10-second vocal sample</button><a id="downloadSample" hidden>Download vocal sample</a><button id="downloadLog" disabled>Download tracking log</button></div><p id="sampleMessage" class="notice" role="status">Start the microphone to record a test phrase.</p></details>
+<details><summary>Troubleshoot dropouts</summary><p class="notice">Record a short phrase that drops out. The sample records the selected microphone or tab audio even when no swara is detected. Both downloads stay on your device until you choose to share them.</p><div class="settings"><button id="recordSample" disabled>Record a 10-second vocal sample</button><a id="downloadSample" hidden>Download vocal sample</a><button id="downloadLog" disabled>Download tracking log</button></div><p id="sampleMessage" class="notice" role="status">Start the microphone or capture a Chrome tab to record a test phrase.</p></details>
 <details><summary>About this experiment</summary><p class="notice">Corrected YIN periodicity analysis uses overlapping audio windows, with the bundled CREPE model as a confidence-aware cross-check. Audio processing runs in workers. Uncertain, clipped, and silent frames leave gaps instead of repeating an old pitch. “Pitch evidence” describes periodicity and detector agreement; it is not a probability that a swara is correct.</p><p class="notice">This is a single-pitch tracker, not a voice separator. A louder drone, another singer, or strong room noise can still mislead it. The bundled CREPE model is the existing compact model. Real-vocal accuracy needs comparison against labelled recordings.</p><p class="notice"><a href="testing-new-method.html">Open original experiment</a> · <a href="https://github.com/marl/crepe" target="_blank" rel="noreferrer">CREPE reference</a> · <a href="https://labrosa.ee.columbia.edu/doc/yin.html" target="_blank" rel="noreferrer">YIN reference</a></p></details>
 </main>
 <!-- Shared by the audio worker, the UI tracker, and the deterministic tests. -->
 <script src="./vocal-accuracy/pitch-core.js"></script>
 <script src="./vocal-accuracy/scheduling.js"></script>
+<script src="./vocal-accuracy/song-player.js"></script>
 <script>
 (() => {
   'use strict';
@@ -222,10 +246,12 @@ summary { cursor:pointer; font-weight:700; }
   const trackingLog = [];
   let recording = null, sampleURL = null;
   let session = null, displayNote = null, candidate = null, lastConfirmed = null;
+  let song = null, lastSongIndex = -1;
   let settings = { sa: 240, minHz: 65, maxHz: 1200, gateDb: -72, sensitivity: 70, continuous: true };
   let noiseCapture = null;
   let latestVisual = null;
-  const painter = PitchScheduling.createPainter(() => {
+  const graphPainter = PitchScheduling.createPainter(drawGraph);
+  const readoutPainter = PitchScheduling.createPainter(() => {
     if (latestVisual) {
       const { data, result, note, neural, fresh } = latestVisual;
       if (session?.neuralReady) $('crepeHz').textContent = fresh ? `${neural.hz.toFixed(1)} Hz · ${Math.round(neural.confidence * 100)}% activation` : 'Awaiting fresh result';
@@ -237,8 +263,11 @@ summary { cursor:pointer; font-weight:700; }
       updateMicFeedback(db, result.hz && db < settings.gateDb ? 'Quiet continuation · current pitch detected' : feedback);
       if (result.hz) paintPitch(result, note); else clearReadout(result.reason || 'Uncertain pitch', false);
     }
-    drawGraph();
-  });
+  }, 20);
+  const painter = {
+    request() { readoutPainter.request(); graphPainter.request(); },
+    cancel() { readoutPainter.cancel(); graphPainter.cancel(); }
+  };
 
   try {
     const saved = JSON.parse(localStorage.getItem('vocal-accuracy-settings') || 'null');
@@ -262,7 +291,7 @@ summary { cursor:pointer; font-weight:700; }
   $('vocalSensitivityValue').textContent = `${settings.sensitivity}%`;
   $('trackingMode').value = settings.continuous ? 'continuous' : 'strict';
   function updateMicFeedback(db = null, reason = '') {
-    const prefix = db === null ? '' : `Mic ${db.toFixed(1)} dBFS · `;
+    const prefix = db === null ? '' : `Input ${db.toFixed(1)} dBFS · `;
     $('micFeedback').textContent = `${prefix}threshold ${settings.gateDb} dBFS${reason ? ' · ' + reason : ''}`;
   }
   updateMicFeedback();
@@ -286,6 +315,7 @@ summary { cursor:pointer; font-weight:700; }
       }
       settings[key] = value; saveSettings(); clearNotes(); session?.tracker.reset();
       updateMicFeedback();
+      if (key === 'sa') song?.refresh(); else song?.invalidate();
     });
   }
   $('vocalSensitivity').addEventListener('input', () => {
@@ -302,6 +332,7 @@ summary { cursor:pointer; font-weight:700; }
     $('vocalSensitivity').value = 70; $('vocalSensitivityValue').textContent = '70%';
     $('noiseGate').value = -72; $('trackingMode').value = 'continuous'; updateMicFeedback();
     session?.tracker.reset(); saveSettings();
+    song?.invalidate();
   });
   P.SWARAS.forEach((name, i) => {
     const label = document.createElement('label'); label.textContent = name + ' (cents)';
@@ -309,13 +340,13 @@ summary { cursor:pointer; font-weight:700; }
     input.step = 1; input.value = offsets[i]; input.disabled = i === 0;
     input.addEventListener('change', () => {
       if (!input.value || !input.checkValidity()) { input.value = offsets[i]; return; }
-      offsets[i] = Number(input.value); saveSettings(); clearNotes();
+      offsets[i] = Number(input.value); saveSettings(); clearNotes(); song?.refresh();
     });
     label.appendChild(input); $('tuning').appendChild(label);
   });
   $('resetTuning').addEventListener('click', () => {
     offsets.fill(0); $('tuning').querySelectorAll('input').forEach(input => { input.value = 0; });
-    saveSettings(); clearNotes();
+    saveSettings(); clearNotes(); song?.refresh();
   });
 
   function clearReadout(reason, reset = true) {
@@ -367,6 +398,11 @@ summary { cursor:pointer; font-weight:700; }
     $('sourceText').textContent = result.source;
   }
 
+  function updateListeningStatus(s, detail = s.neuralReady ? 'YIN + CREPE' : 'YIN only') {
+    if (session !== s || !s.listening) return;
+    $('status').textContent = document.hidden ? 'Paused while tab is hidden'
+      : `${s.mode === 'tab' ? 'Tab audio' : 'Listening'} · ${detail}`;
+  }
   function startNeural(s) {
     try {
       s.neural = new Worker(new URL('./vocal-accuracy/neural-worker.js', location.href));
@@ -376,7 +412,7 @@ summary { cursor:pointer; font-weight:700; }
         s.neural?.terminate(); s.neural = null; s.neuralReady = false;
         s.neuralResult = null; clearTimeout(s.neuralTimeout);
         $('crepeHz').textContent = 'Unavailable · YIN active';
-        if (s.listening) $('status').textContent = 'Listening · YIN only';
+        updateListeningStatus(s);
       };
       s.neuralTimeout = setTimeout(fallback, 20000);
       s.neural.onerror = fallback;
@@ -385,7 +421,7 @@ summary { cursor:pointer; font-weight:700; }
         if (data.type === 'ready') {
           clearTimeout(s.neuralTimeout); s.neuralReady = true; s.neuralBackend = data.backend;
           $('crepeHz').textContent = 'Ready';
-          if (s.listening) $('status').textContent = 'Listening · YIN + CREPE';
+          updateListeningStatus(s);
         } else if (data.type === 'error') fallback();
         else if (data.type === 'prediction') {
           clearTimeout(s.neuralTimeout); s.budget.finish(performance.now(), data.inferenceMs);
@@ -414,13 +450,17 @@ summary { cursor:pointer; font-weight:700; }
     s.lastReceived = performance.now();
     s.frames.push(data); s.frameByTime.set(data.t, data);
     if (s.neuralReady && data.neuralFrame && !data.blocked && data.rms >= data.gate && !noiseCapture
+        && (data.quality < 0.9 || !data.agreement || !s.neuralResult || data.t - s.neuralResult.t >= 1000)
         && s.budget.start(performance.now())) {
-      s.neuralFrameTime = data.t; data.awaitNeural = true;
+      s.neuralFrameTime = data.t;
+      // Strong current evidence goes straight to the display; only uncertain
+      // audio benefits from waiting briefly for its exact neural cross-check.
+      data.awaitNeural = !data.hz || data.quality < 0.85;
       s.neural.postMessage({ type: 'process', frame: data.neuralFrame, t: data.t }, [data.neuralFrame.buffer]);
       s.neuralTimeout = setTimeout(() => {
         if (session !== s) return;
         s.neural?.terminate(); s.neural = null; s.neuralReady = false; s.neuralResult = null;
-        $('crepeHz').textContent = 'Timed out · YIN active'; $('status').textContent = 'Listening · YIN only';
+        $('crepeHz').textContent = 'Timed out · YIN active'; updateListeningStatus(s);
       }, 4000);
     }
     flushFrames(s);
@@ -428,10 +468,11 @@ summary { cursor:pointer; font-weight:700; }
   function flushFrames(s) {
     if (session !== s || !s.context || document.hidden) return;
     const now = s.context.currentTime * 1000;
-    // Only a frame actually sent to CREPE needs a brief recovery window.
-    // Ordinary YIN frames no longer inherit the old 65–200 ms neural delay.
+    // A newer clear note bypasses an older frame's recovery window. Delayed
+    // neural work must never hold up a measured change in the current audio.
     while (s.frames.length && (s.frames[0].blocked || !s.neuralReady || !s.frames[0].awaitNeural
-        || s.frames[0].neural || now - s.frames[0].t >= 80)) {
+        || s.frames[0].neural || now - s.frames[0].t >= 80
+        || (s.frames.at(-1).t > s.frames[0].t && s.frames.at(-1).hz && s.frames.at(-1).quality >= 0.85))) {
       const frame = s.frames.shift(); s.frameByTime.delete(frame.t);
       processFrame(s, frame);
     }
@@ -482,46 +523,61 @@ summary { cursor:pointer; font-weight:700; }
     painter.request();
   }
 
-  async function start() {
+  async function start(mode = 'mic') {
     if (session) return;
-    const s = { tracker: new P.Tracker(), budget: new PitchScheduling.NeuralBudget(), lastReceived: performance.now(), frames: [], frameByTime: new Map() };
-    session = s; $('startBtn').disabled = true; $('stopBtn').disabled = false;
+    song?.deactivate();
+    const s = { mode, tracker: new P.Tracker(), budget: new PitchScheduling.NeuralBudget(), lastReceived: performance.now(), frames: [], frameByTime: new Map() };
+    session = s; $('startBtn').disabled = true; $('tabBtn').disabled = true; $('stopBtn').disabled = false;
     trackingLog.length = 0; $('downloadLog').disabled = true;
-    clearNotes(); $('status').textContent = 'Requesting microphone…'; $('crepeHz').textContent = 'Loading local model…';
+    clearNotes(); $('status').textContent = mode === 'tab' ? 'Select a Chrome tab and enable Share tab audio…' : 'Requesting microphone…';
+    $('crepeHz').textContent = 'Loading local model…';
     try {
-      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Open this page on localhost or HTTPS for microphone access.');
+      if (!window.isSecureContext) throw new Error('Open this page on localhost or HTTPS for audio capture.');
+      if (mode === 'tab' && !navigator.mediaDevices?.getDisplayMedia) throw new Error('Tab audio capture is unavailable. Try desktop Chrome on localhost or HTTPS.');
+      if (mode === 'mic' && !navigator.mediaDevices?.getUserMedia) throw new Error('Microphone access is unavailable. Try Chrome on localhost or HTTPS.');
+      // Open Chrome's share picker during the click, before any other awaited work.
+      const stream = mode === 'tab'
+        ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+        : await navigator.mediaDevices.getUserMedia({ video: false, audio: {
+          echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1
+        }});
+      if (session !== s) { stream.getTracks().forEach(track => track.stop()); return; }
+      s.stream = stream;
+      const audioTracks = stream.getAudioTracks();
+      if (!audioTracks.length) throw new Error(mode === 'tab'
+        ? 'No tab audio captured. Select a Chrome tab and enable Share tab audio.' : 'No microphone audio captured.');
+      for (const track of audioTracks) {
+        if ('contentHint' in track) track.contentHint = 'music';
+      }
+      stream.getTracks().forEach(track => track.addEventListener('ended', () => {
+        if (session === s) stop(mode === 'tab' ? 'Tab sharing ended' : 'Microphone disconnected');
+      }));
       s.context = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
       await s.context.resume();
       if (session !== s) return;
-      const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: {
-        echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1
-      }});
-      if (session !== s) { stream.getTracks().forEach(track => track.stop()); return; }
-      s.stream = stream;
       if (!s.context.audioWorklet) throw new Error('This browser needs AudioWorklet support. Try a current Chrome or Firefox.');
       await s.context.audioWorklet.addModule(new URL('./vocal-accuracy/audio-worklet.js', location.href));
       if (session !== s) return;
       s.worker = new Worker(new URL('./vocal-accuracy/analysis-worker.js', location.href));
       s.worker.onmessage = event => onFrame(s, event.data);
       s.worker.onerror = () => { if (session === s) stop('Audio worker failed. Reload and try again.'); };
-      s.node = new AudioWorkletNode(s.context, 'vocal-capture', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+      s.node = new AudioWorkletNode(s.context, 'vocal-capture', {
+        numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit'
+      });
       s.node.port.onmessage = ({ data }) => {
         if (session !== s) return;
         if (document.hidden) { s.node.port.postMessage('ready'); return; }
-        const last = s.tracker.last;
-        const continuing = settings.continuous && !noiseCapture && last && data.t - last.t <= 260;
-        // A lower release cutoff keeps a quiet sustained vowel measurable. It
-        // still needs fresh periodicity or exact-frame neural support to display.
-        const options = { ...settings, gateDb: continuing ? Math.max(-80, settings.gateDb - 10) : settings.gateDb };
+        // Sustain history and release gating live beside the current waveform
+        // in the worker, independent of neural buffering or UI paint timing.
+        const options = { ...settings, continuous: settings.continuous && !noiseCapture };
         const needNeural = s.neuralReady && !noiseCapture && s.budget.available(performance.now());
         s.worker.postMessage({ ...data, options, needNeural }, [data.frame.buffer]);
       };
       s.source = s.context.createMediaStreamSource(stream);
       s.source.connect(s.node); s.node.connect(s.context.destination);
-      s.stream.getTracks().forEach(track => track.addEventListener('ended', () => { if (session === s) stop('Microphone disconnected'); }));
       $('sampleRate').textContent = `${s.context.sampleRate} Hz → 16000 Hz`;
-      s.listening = true; $('status').textContent = 'Listening · loading CREPE';
-      $('setSaBtn').disabled = false; $('noiseBtn').disabled = false;
+      s.listening = true; updateListeningStatus(s, 'loading CREPE');
+      $('setSaBtn').disabled = false; $('noiseBtn').disabled = mode === 'tab';
       $('recordSample').disabled = !window.MediaRecorder || Boolean(recording);
       startNeural(s);
       s.flushTimer = setInterval(() => flushFrames(s), 20);
@@ -531,7 +587,10 @@ summary { cursor:pointer; font-weight:700; }
           clearReadout('No recent audio frame'); captureFrames.length = 0; s.tracker.reset();
         }
       }, 100);
-    } catch (error) { if (session === s) stop(error.message); }
+    } catch (error) {
+      if (session === s) stop(mode === 'tab' && error.name === 'NotAllowedError'
+        ? 'Tab sharing was cancelled or blocked.' : error.message);
+    }
   }
   function stop(message = 'Stopped') {
     painter.cancel(); latestVisual = null;
@@ -545,22 +604,24 @@ summary { cursor:pointer; font-weight:700; }
       if (s.context?.state !== 'closed') s.context?.close().catch(() => {});
     }
     noiseCapture = null; captureFrames.length = 0;
-    $('startBtn').disabled = false; $('stopBtn').disabled = true; $('setSaBtn').disabled = true; $('noiseBtn').disabled = true;
+    $('startBtn').disabled = false; $('tabBtn').disabled = false; $('stopBtn').disabled = true; $('setSaBtn').disabled = true; $('noiseBtn').disabled = true;
     $('recordSample').disabled = true;
     $('status').textContent = message; $('crepeHz').textContent = '—'; clearReadout(message);
     updateMicFeedback();
     $('periodicity').textContent = '—'; $('rms').textContent = '—';
   }
-  $('startBtn').addEventListener('click', start);
-  $('stopBtn').addEventListener('click', () => stop());
+  $('startBtn').addEventListener('click', () => start('mic'));
+  $('tabBtn').addEventListener('click', () => start('tab'));
+  $('stopBtn').addEventListener('click', () => { song?.pause(); stop(); });
   $('recordSample').addEventListener('click', () => {
     if (!session?.stream || recording || !window.MediaRecorder) return;
     try {
       const type = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t));
-      const recorder = new MediaRecorder(session.stream, type ? { mimeType: type } : {});
+      const audioStream = new MediaStream(session.stream.getAudioTracks());
+      const recorder = new MediaRecorder(audioStream, type ? { mimeType: type } : {});
       const take = { recorder, chunks: [], timer: null };
       recording = take; $('recordSample').disabled = true;
-      $('downloadSample').hidden = true; $('sampleMessage').textContent = 'Recording 10 seconds — sing a phrase that drops out.';
+      $('downloadSample').hidden = true; $('sampleMessage').textContent = 'Recording 10 seconds — sing or play a phrase that drops out.';
       recorder.ondataavailable = event => { if (event.data.size) take.chunks.push(event.data); };
       recorder.onstop = () => {
         clearTimeout(take.timer); recording = null;
@@ -597,6 +658,7 @@ summary { cursor:pointer; font-weight:700; }
   });
   $('noiseBtn').addEventListener('click', () => {
     if (!session) return;
+    session.worker?.postMessage({ type: 'reset' });
     painter.cancel(); latestVisual = null;
     noiseCapture = { start: session.context.currentTime * 1000, values: [], pitched: 0 };
     $('noiseBtn').disabled = true; $('setSaBtn').disabled = true;
@@ -659,12 +721,39 @@ summary { cursor:pointer; font-weight:700; }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawGraph();
   }
   $('graphSmoothing').addEventListener('input', () => { $('graphSmoothingValue').textContent = $('graphSmoothing').value + '%'; drawGraph(); });
+  song = VocalSong.mount({
+    getSettings: () => ({ ...settings }),
+    onStart() { stop(); clearNotes(); lastSongIndex = -1; },
+    onStatus(text) { $('status').textContent = text; $('stopBtn').disabled = !session && text !== 'Playing analyzed song'; },
+    onFrame(frame, frames, index, timeMs) {
+      if (index !== lastSongIndex) {
+        if (index < lastSongIndex || index > lastSongIndex + 3) {
+          candidate = null; lastConfirmed = null; history.length = 0; $('history').replaceChildren();
+        }
+        if (frame.hz) renderPitch(frame); else { displayNote = null; candidate = null; }
+        lastSongIndex = index;
+      }
+      // Frequencies are fixed by analysis; Sa and tuning remain editable.
+      displayNote = frame.hz ? P.swara(frame.hz, settings.sa, offsets) : null;
+      trace.length = 0;
+      for (let j = Math.max(0, index - 400); j <= index; j++) {
+        trace.push({ t: frames[j].t, cents: frames[j].hz ? P.cents(frames[j].hz, settings.sa) : null });
+      }
+      if (trace.length && timeMs > trace.at(-1).t) trace.push({ t: timeMs, cents: trace.at(-1).cents });
+      $('crepeHz').textContent = frame.neuralHz ? `${frame.neuralHz.toFixed(1)} Hz · file analysis` : 'File analysis';
+      $('sampleRate').textContent = '16000 Hz · analyzed file';
+      latestVisual = { data: frame, result: frame, note: displayNote, neural: null, fresh: false };
+      painter.request();
+    }
+  });
   window.addEventListener('resize', resize);
   document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) song?.refresh();
     const s = session;
     if (!s?.listening) return;
     painter.cancel(); latestVisual = null;
     s.frames.length = 0; s.frameByTime.clear(); s.tracker.reset(); s.neuralResult = null; s.stability = null;
+    s.worker?.postMessage({ type: 'reset' });
     captureFrames.length = 0; displayNote = null; candidate = null;
     if (document.hidden) {
       s.context.suspend().catch(() => {});
@@ -672,11 +761,11 @@ summary { cursor:pointer; font-weight:700; }
     } else {
       s.lastReceived = performance.now();
       s.context.resume().catch(error => { if (session === s) stop(error.message); });
-      $('status').textContent = s.neuralReady ? 'Listening · YIN + CREPE' : 'Listening · YIN only';
+      updateListeningStatus(s);
       trace.push({ t: s.context.currentTime * 1000, cents: null });
     }
   });
-  window.addEventListener('pagehide', () => stop());
+  window.addEventListener('pagehide', () => { song?.dispose(); stop(); });
   resize();
 })();
 </script>

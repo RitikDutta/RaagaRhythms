@@ -39,10 +39,18 @@ self.onmessage = async ({ data }) => {
         }
       }
       self.postMessage({ type: 'ready', backend: tf.getBackend() });
+    } else if (data.type === 'analyze-song') {
+      importScripts('pitch-core.js', 'offline-core.js');
+      const result = await VocalOffline.analyze(data.samples, data.options, model ? predict : null,
+        progress => self.postMessage({ type: 'song-progress', progress }));
+      self.postMessage({ type: 'song-complete', ...result });
     } else if (data.type === 'process' && model) {
       const start = clock();
       const result = predict(data.frame);
       self.postMessage({ type: 'prediction', t: data.t, ...result, inferenceMs: clock() - start });
     }
-  } catch (error) { self.postMessage({ type: 'error', message: error.message }); }
+  } catch (error) {
+    if (data.type === 'init') { model?.dispose(); model = null; }
+    self.postMessage({ type: 'error', message: error.message });
+  }
 };

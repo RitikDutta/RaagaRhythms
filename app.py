@@ -13,13 +13,16 @@ PUBLIC_FILES = {
     'piano.css',
     'piano.html',
     'piano.js',
+    'testing-mic-proximity.html',
+    'testing-vocal-accuracy.html',
+    'song_test.mp3',
     'script.js',
     'style.css',
     'ui-switcher.css',
     'ui-switcher.js',
     'voice.html',
 }
-PUBLIC_DIRECTORIES = ('crepe/', 'images/', 'notes/', 'future_phase/public/')
+PUBLIC_DIRECTORIES = ('crepe/', 'images/', 'notes/', 'mic-proximity/', 'vocal-accuracy/', 'future_phase/public/')
 
 @app.route('/')
 def raagas_webpage():

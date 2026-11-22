@@ -38,6 +38,7 @@
 
     h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 42px); }
     .subtitle { color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+    .experiment-link { display: inline-block; color: var(--accent); font-size: 13px; margin-top: 9px; text-underline-offset: 4px; }
 
     .toolbar {
       display: flex;
@@ -167,6 +168,7 @@
     <div class="subtitle">
       A fast YIN tracker follows rapid note changes, with CREPE checking the pitch in the background.
       Note detection stays responsive, while the graph has independently adjustable visual smoothing.
+      <br><a class="experiment-link" href="testing-mic-proximity.html">Try the new mic proximity experiment →</a>
     </div>
 
     <section class="toolbar">
@@ -213,7 +215,7 @@
         <div class="debug">
           <div>CREPE: <strong id="crepeHz">—</strong></div>
           <div>YIN: <strong id="yinHz">—</strong></div>
-          <div>Mic RMS: <strong id="rms">—</strong></div>
+          <div>Mic level: <strong id="rms">—</strong></div>
           <div>Audio rate: <strong id="sampleRate">—</strong></div>
         </div>
       </div>
@@ -271,7 +273,7 @@
   const MAX_TRACE = 360;
   const MIN_HZ = 65;
   const MAX_HZ = 1200;
-  const MIN_RMS = 0.008;
+  const MIN_RMS = 10 ** (-72 / 20);
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
   function mod(n, m) { return ((n % m) + m) % m; }
@@ -320,8 +322,8 @@
 
   function fusePitch() {
     const now = performance.now();
-    const c = lastCrepe && now - lastCrepe.t < 250 ? lastCrepe : null;
-    const y = lastYin && now - lastYin.t < 120 ? lastYin : null;
+    const c = lastCrepe?.hz && now - lastCrepe.t < 250 ? lastCrepe : null;
+    const y = lastYin?.hz && now - lastYin.t < 120 ? lastYin : null;
 
     if (!c && !y) return null;
 
@@ -463,7 +465,7 @@
       $("sourceText").textContent = lastYin?.reason || 'Listening for a clear pitch';
       $("quality").textContent = '—'; $("qualityBar").style.width = '0%';
       $("crepeHz").textContent = '—'; $("yinHz").textContent = '—';
-      $("rms").textContent = lastYin ? lastYin.rms.toFixed(4) : '—';
+      $("rms").textContent = lastYin ? `${(20 * Math.log10(Math.max(1e-8, lastYin.rms))).toFixed(1)} dBFS` : '—';
       drawGraph(); return;
     }
     const { displayHz, note, quality, source } = latestResult;
@@ -481,7 +483,7 @@
 
     $("crepeHz").textContent = lastCrepe ? `${lastCrepe.hz.toFixed(2)} Hz` : "—";
     $("yinHz").textContent = lastYin && lastYin.hz ? `${lastYin.hz.toFixed(2)} Hz` : "—";
-    $("rms").textContent = lastYin ? lastYin.rms.toFixed(4) : "—";
+    $("rms").textContent = lastYin ? `${(20 * Math.log10(Math.max(1e-8, lastYin.rms))).toFixed(1)} dBFS` : "—";
 
     drawGraph();
   }
@@ -698,6 +700,9 @@
       });
       if (!running || id !== sessionId) { stream.getTracks().forEach(track => track.stop()); return; }
       mediaStream = stream;
+      for (const track of stream.getAudioTracks?.() || []) {
+        if ('contentHint' in track) track.contentHint = 'music';
+      }
 
       micSource = audioContext.createMediaStreamSource(mediaStream);
       analyser = audioContext.createAnalyser();
@@ -717,7 +722,8 @@
         if (data.error) { stop('Audio analysis error: ' + data.error); return; }
         if (document.hidden || performance.now() - data.t > 180) return;
         previousYin = lastYin;
-        lastYin = { hz: data.quality >= 0.72 ? data.hz : null, rms: data.rms, t: data.t, reason: data.reason };
+        lastYin = { hz: data.quality >= 0.72 || data.continuation ? data.hz : null,
+          rms: data.rms, t: data.t, reason: data.reason, source: data.source };
         if (neuralReady && data.neuralFrame && !data.blocked && budget.start(performance.now())) {
           neuralWorker.postMessage({ type: 'process', frame: data.neuralFrame, t: data.t }, [data.neuralFrame.buffer]);
           neuralTimeout = setTimeout(() => {
@@ -815,6 +821,7 @@
     lastCrepe = null; lastYin = null; previousYin = null; latestResult = null;
     currentNote = null; candidateNote = null; smoothedCents = null;
     painter.cancel();
+    analysisWorker?.postMessage({ type: 'reset' });
     if (document.hidden) {
       audioContext.suspend().catch(() => {});
       statusEl.textContent = 'Paused while tab is hidden';

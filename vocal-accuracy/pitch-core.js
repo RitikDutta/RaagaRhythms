@@ -101,6 +101,42 @@ const VocalPitch = (() => {
     return first > 1e-14 && second > 1e-14 ? clamp(cross / Math.sqrt(first * second), 0, 1) : 0;
   }
 
+  function followPitch(input, previousHz) {
+    if (!Number.isFinite(previousHz) || previousHz < 45 || previousHz > 2000) return null;
+    // Search CURRENT audio near the previous period. This is a measured local
+    // correlation peak, never a held display value or a guess through silence.
+    const radius = 2 ** (70 / 1200);
+    // Three cycles give finer period resolution than a noisy one-cycle peak.
+    const cycles = 3;
+    const firstLag = Math.max(2, Math.floor(cycles * RATE / (previousHz * radius)) - 1);
+    const lastLag = Math.ceil(cycles * RATE * radius / previousHz) + 1;
+    const width = Math.min(1024, input.length - lastLag);
+    if (width < 256) return null;
+    const start = input.length - lastLag - width;
+    let mean = 0;
+    for (let i = start; i < input.length; i++) mean += input[i];
+    mean /= input.length - start;
+    const correlations = new Float64Array(lastLag - firstLag + 1);
+    let peak = 0;
+    for (let lag = firstLag; lag <= lastLag; lag++) {
+      let cross = 0, a2 = 0, b2 = 0;
+      for (let i = start; i < start + width; i++) {
+        const a = input[i] - mean, b = input[i + lag] - mean;
+        cross += a * b; a2 += a * a; b2 += b * b;
+      }
+      const index = lag - firstLag;
+      correlations[index] = a2 > 1e-14 && b2 > 1e-14 ? cross / Math.sqrt(a2 * b2) : 0;
+      if (correlations[index] > correlations[peak]) peak = index;
+    }
+    if (!peak || peak === correlations.length - 1 || correlations[peak] < 0.5) return null;
+    const left = correlations[peak - 1], center = correlations[peak], right = correlations[peak + 1];
+    const denominator = left - 2 * center + right;
+    const offset = Math.abs(denominator) > 1e-12 ? clamp(0.5 * (left - right) / denominator, -0.5, 0.5) : 0;
+    const hz = cycles * RATE / (firstLag + peak + offset);
+    if (Math.abs(cents(hz, previousHz)) > 70) return null;
+    return { hz, quality: clamp(center, 0, 1) };
+  }
+
   function yin(input, minHz = 65, maxHz = 1200, windowMs = 35) {
     const minTau = Math.max(2, Math.floor(RATE / maxHz));
     const maxTau = Math.min(input.length - 128, Math.ceil(RATE / minHz) + 1);
@@ -176,23 +212,42 @@ const VocalPitch = (() => {
     const focused = focusVoice(samples);
     const long = yin(focused.subarray(focused.length - 1024), 45, 2000, 35);
     const short = yin(focused.subarray(focused.length - 640), 45, 2000, 18);
+    // A fresh, short window can identify the next note before the older
+    // samples in the low-register window stop supporting the previous note.
+    // Keep the wide search for low voices and require current-cycle support
+    // before letting this faster estimate take priority.
+    const fast = yin(focused.subarray(focused.length - 640), 80, 2000, 12);
     let chosen = long;
     if (short.hz && short.quality > 0.93 && (!long.hz || short.quality > long.quality + 0.025)) chosen = short;
+    if (fast.hz && fast.quality >= 0.93) {
+      const recent = focused.subarray(-Math.max(320, Math.ceil(2.5 * RATE / fast.hz)));
+      const octaveConflict = long.hz && Math.abs(Math.abs(cents(fast.hz, long.hz)) - 1200) < 50;
+      if (pitchSupport(recent, fast.hz) >= 0.9
+          && !(octaveConflict && long.quality > 0.97 && fast.quality < long.quality + 0.01)) chosen = fast;
+    }
+    if (options.continuous !== false && options.previousHz && (!chosen.hz || chosen.quality < 0.8)) {
+      const follow = followPitch(focused, options.previousHz);
+      if (follow && follow.hz >= min && follow.hz <= max) {
+        return { ...follow, ...meta, candidates: [{ ...follow }], agreement: false,
+          continuation: true, source: 'Sustained vocal · current waveform', reason: '' };
+      }
+    }
     if (chosen.hz && (chosen.hz < min || chosen.hz > max)) {
       return { hz: null, quality: chosen.quality, ...meta, blocked: true, reason: 'Pitch outside selected voice range' };
     }
-    const agreement = !!(short.hz && long.hz && Math.abs(cents(short.hz, long.hz)) < 30);
+    const agreement = !!(chosen.hz && [short, long].some(other => other !== chosen && other.hz
+      && Math.abs(cents(chosen.hz, other.hz)) < 30));
     return { ...chosen, ...meta,
       candidates: chosen.candidates.filter(c => c.hz >= min && c.hz <= max),
-      agreement, shortHz: short.hz, longHz: long.hz,
-      source: chosen === short ? 'Short-window YIN' : 'YIN', reason: chosen.hz ? '' : 'No periodic vocal pitch' };
+      agreement, responsive: chosen === fast, shortHz: short.hz, longHz: long.hz,
+      source: chosen === fast ? 'Recent-window YIN' : chosen === short ? 'Short-window YIN' : 'YIN', reason: chosen.hz ? '' : 'No periodic vocal pitch' };
   }
 
   function neuralIsUsable(frame, neural) {
     if (!neural || !Number.isFinite(neural.hz) || neural.confidence < 0.55) return false;
     const age = frame.t - neural.t;
     if (age < 0) return false;
-    if (age <= 100) return true;
+    if (age <= 100) return !Number.isFinite(frame.stableSince) || neural.t >= frame.stableSince;
     // CPU inference can be slower than the audio hop. Older evidence may only
     // reinforce agreement on an uninterrupted, unchanged pitch, never override
     // a new note or resolve a delayed octave disagreement.
@@ -217,8 +272,10 @@ const VocalPitch = (() => {
         quality: Math.max(frame.quality || 0, neural.support), supported: true, weak: false,
         source: matches ? 'YIN + CREPE recovery' : 'CREPE · waveform-supported' };
     }
-    const canContinue = frame.continuous !== false && sensitivity >= 0.5 && frame.lastHz
-      && frame.hz && frame.quality >= 0.6 && Math.abs(cents(frame.hz, frame.lastHz)) < 100;
+    const measuredContinuation = frame.continuation && !frame.blocked && frame.quality >= 0.5
+      && frame.rms > 0 && frame.rms >= (frame.gate || 1e-6);
+    const canContinue = frame.continuous !== false && sensitivity >= 0.5 && frame.hz
+      && (measuredContinuation || (frame.lastHz && frame.quality >= 0.6 && Math.abs(cents(frame.hz, frame.lastHz)) < 100));
     if (!frame.hz || (frame.quality < minimum && !canContinue)) return { ...frame, hz: null, reason: frame.reason || 'Pitch too uncertain' };
     const n = neuralIsUsable(frame, neural) ? neural : null;
     if (n) {
@@ -286,7 +343,7 @@ const VocalPitch = (() => {
         }
         this.pending.count++;
         this.pending.lastT = frame.t;
-        const hold = this.last ? 40 : 20;
+        const hold = this.last && !result.responsive ? 40 : 20;
         if (this.pending.count < 2 || frame.t - this.pending.t < hold) return { ...result, hz: null, reason: 'Confirming pitch' };
       }
       this.pending = null;
@@ -324,5 +381,5 @@ const VocalPitch = (() => {
     if (deviations[Math.floor(deviations.length * 0.9)] > 18) return null;
     return 2 ** middle;
   }
-  return { RATE, SWARAS, cents, median, clamp, resample, level, focusVoice, pitchSupport, yin, analyze, neuralIsUsable, fuse, Tracker, swara, captureSa };
+  return { RATE, SWARAS, cents, median, clamp, resample, level, focusVoice, pitchSupport, followPitch, yin, analyze, neuralIsUsable, fuse, Tracker, swara, captureSa };
 })();
